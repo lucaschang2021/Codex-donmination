@@ -1,200 +1,308 @@
-# Codex Domination — Project Control / 项目控制基线
+# Möbius — Project Control / 项目控制基线
+
+> Official product name: **Möbius / 莫比乌斯**  
+> Historical codename: **Codex Domination**
 
 ## 1. Mission / 使命
 
-Codex Domination exists to provide a narrow control bridge for multiple persistent Codex threads.
+Möbius exists to provide a controller-first operating system for AI engineering teams.
 
-Codex Domination 的目标，是为多个持久化 Codex 对话提供一个狭窄、结构化、可审计的控制桥。
+它把 Agent Runtime、工程治理、Evidence、Git/CI、长期知识与人类最终判断连接成一个结构化、可观察、可审计的开发闭环。
 
-The project is not a general autonomous software factory. Its first responsibility is to remove manual relay work between a controller and specialist Codex roles while preserving explicit human/controller authority.
+Möbius is not an unrestricted autonomous software factory. Its purpose is to automate execution mechanics and coordination while preserving explicit Controller authority over architecture, risk, stage admission and merge/release decisions.
 
-本项目不是通用“自主软件工厂”。第一责任是减少总控与不同 Codex 专业角色之间的人工中转，同时保留明确的人类/总控最终控制权。
+Core thesis:
 
-## 2. v0.1 Frozen Objective / v0.1 冻结目标
+> **Agents execute. Git records. Evidence proves. Obsidian remembers. Möbius governs.**
 
-Prove one reliable end-to-end loop:
+---
 
-验证一条可靠的端到端控制闭环：
+## 2. Architectural Identity / 架构身份
+
+Möbius is **Codex-first, not Codex-only**.
+
+- OpenAI Codex is the reference runtime and first implementation target.
+- Hermes is the first planned additional runtime.
+- Future runtimes require explicit integration research + ADR admission.
+- Runtime-specific agency is separated from upper-layer governance.
+
+Canonical target architecture:
+
+```text
+Governance Plane
+Runtime Plane
+Evidence Plane
+Repository Plane
+Knowledge Plane
+```
+
+The authoritative target-system document is:
+
+`docs/20-MOBIUS-MASTER-ARCHITECTURE-v1.md`
+
+---
+
+## 3. v0.1 Frozen Objective / v0.1 冻结目标
+
+The product identity has expanded, but **v0.1 scope remains frozen**.
+
+Prove one reliable Codex control foundation:
 
 ```text
 Controller
   → discover persistent Codex threads
-  → read one selected thread
-  → dispatch one bounded task
-  → observe execution state
-  → receive a deterministic completion/failure signal
+  → normalize stable identities
+  → validate behavior in a real local Codex environment
 ```
 
-The following capabilities define v0.1:
+The broader read/resume/dispatch/status loop is built only through subsequent admitted stages.
 
-- `list_threads`
-- `read_thread(thread_id)`
-- `send_task(thread_id, prompt)`
-- `watch_status(thread_id)` or equivalent
-- minimal MCP-compatible external control surface
+v0.1 MUST NOT silently absorb:
 
-以下能力构成 v0.1：
-
-- 列出持久化 Codex 对话
-- 读取指定对话
-- 向指定对话派发有边界的任务
-- 观察状态并获得确定性结束信号
-- 提供最小 MCP 兼容外部控制面
-
-## 3. Non-goals / 明确不做
-
-v0.1 MUST NOT expand into:
-
-- graphical dashboard
-- Obsidian / knowledge-base integration
-- automatic PR creation or merging
+- Hermes integration
+- Obsidian synchronization
+- automatic PR/merge
+- broad Repository Control
+- dashboard-first product work
+- generic multi-runtime orchestration
 - autonomous release authority
-- generic multi-model orchestration
-- broad project-management features
-- UI scraping as the default transport
 
-v0.1 不得扩张到：
+Long-range architecture is allowed to describe these capabilities; implementation gates still control when they enter the product.
 
-- 图形化控制台
-- Obsidian / 知识库
-- 自动 PR 创建或合并
-- 自主发布权限
-- 通用多模型编排
-- 大型项目管理功能
-- 以 UI 抓取作为默认传输方案
+---
 
-## 4. Governance / 治理
+## 4. Controller-First Governance / 总控优先治理
 
-The project follows a controller-first stage-gate model.
-
-本项目采用总控优先的 Stage Gate 模式。
+Canonical process:
 
 ```text
-Research freeze
-    ↓
-Implementation task admitted
-    ↓
-Developer executes
-    ↓
+Architecture / contract frozen
+        ↓
+Stage admitted
+        ↓
+Worker role executes
+        ↓
 Mechanical evidence collected
-    ↓
+        ↓
 Controller independently reviews
-    ↓
+        ↓
 PASS / FIX / BLOCK
-    ↓
-Merge / next stage
+        ↓
+If PASS: merge authorization may be issued
+        ↓
+Repository action executes
+        ↓
+Stage closes + knowledge is extracted
 ```
 
 Rules:
 
-1. No implementation assumption is treated as stable until the integration surface has been validated.
-2. Each stage has explicit scope, non-goals and acceptance criteria.
-3. Mechanical evidence may be automated; architectural/security judgment may not be silently automated away.
-4. A developer role may report completion, but only the controller admits the next stage.
-5. New product ideas go to Roadmap/Future, not into the current stage by default.
+1. Worker completion is not Controller approval.
+2. Green tests/CI are evidence, not architectural judgment.
+3. `PASS`, `MERGE_AUTHORIZED`, `MERGED`, and `CLOSED` are separate states.
+4. No stage begins before the previous required gate passes.
+5. New product ideas enter architecture/roadmap first, not active implementation by default.
+6. Ordinary defects are repaired locally; architecture changes require explicit evidence and ADR treatment.
 
-规则：
+---
 
-1. 在完成集成面验证前，不把任何实现假设视为稳定事实。
-2. 每个阶段必须有明确范围、禁止项和验收标准。
-3. 机械证据可以自动化，但架构/安全判断不得被静默取消。
-4. 开发角色可以报告完成，但只有总控可以准入下一阶段。
-5. 新想法默认进入 Roadmap/Future，不直接污染当前阶段。
+## 5. Runtime Governance / Agent Runtime 治理
 
-## 5. Stage Plan / 阶段计划
+The runtime abstraction exists to keep Möbius independent from any single agent provider.
 
-### R0 — Integration Research / 集成面研究
+```text
+AgentRuntime
+├── CodexRuntime
+├── HermesRuntime
+└── FutureRuntime
+```
 
-Goal: determine the supported way to discover, read, address and control persistent Codex threads.
+No runtime receives authority merely because it is capable of performing an action.
 
-Deliverable:
-- short technical decision note
-- confirmed transport/protocol
-- confirmed thread identity model
-- confirmed read/write/status primitives
-- explicit rejected assumptions
+Runtime integration must define:
 
-Exit gate: Controller confirms there is at least one technically defensible path to implement the v0.1 loop.
+- identity / persistence semantics
+- read/context semantics
+- dispatch semantics
+- status/event semantics
+- interruption/recovery behavior
+- permission boundary
+- evidence/artifact boundary
 
-### BE-1 — Read Bridge / 读取桥
+Unsupported capabilities must fail explicitly.
 
-Goal: implement `list_threads` and `read_thread` against the frozen integration path.
+---
 
-Exit gate:
-- at least two persistent threads can be discovered
-- a chosen thread can be read without manual copy/paste
-- missing/unavailable threads return deterministic errors
-- no UI scraping unless R0 explicitly authorizes it
+## 6. Repository Control Governance / 仓库控制治理
 
-### BE-2 — Dispatch & Status / 派发与状态
+Repository Control is a first-class Möbius subsystem.
 
-Goal: implement bounded task dispatch and terminal status observation.
+Long-range automation may include:
 
-Exit gate:
-- controller can target one existing thread
-- task submission is explicit
-- completion/failure/timeout semantics are defined
-- no hidden merge/release authority
+```text
+branch
+worktree
+commit
+push
+PR
+CI
+merge
+post-merge synchronization
+```
 
-### INT-1 — MCP Surface / MCP 控制面
+Authority rules:
 
-Goal: expose the minimum structured external interface.
-
-Exit gate:
-- discovery → read → dispatch → status works through the external interface
-- schemas are narrow and documented
-- one reproducible end-to-end demo exists
-
-### REL-0 — v0.1 Pre-release / v0.1 预发布
-
-Goal: package a reproducible pre-alpha release with documentation and known limitations.
-
-Exit gate:
-- install/run instructions
-- architecture note
-- threat/permission boundary note
-- tests for critical paths
-- no known P1 issue
-
-## 6. Risk Priorities / 风险优先级
-
-Highest-risk areas for controller review:
-
-- authentication and local process permissions
-- arbitrary task dispatch
-- thread mis-targeting
-- stale or ambiguous execution status
-- unsafe command/tool escalation through delegated agents
-- hidden assumptions about Codex persistence or APIs
-- accidental autonomous GitHub/release actions
-
-总控重点审查：认证与本地进程权限、任意任务派发、thread 误投递、状态歧义、工具权限升级、对 Codex 持久化/API 的未经验证假设，以及意外获得自主合并/发布能力。
-
-## 7. Definition of Success / 成功定义
-
-v0.1 is successful when a controller can operate multiple persistent Codex roles without manually switching windows for the basic control loop, while retaining explicit final authority.
-
-当总控能够在不手工切换窗口的情况下完成“发现 → 读取 → 派发 → 状态观察”的基础闭环，并仍保留最终决策权时，v0.1 即视为成功。
-
-## 8. Long-range Repository Control Governance / 长期仓库控制治理
-
-The frozen v0.1 scope above remains unchanged. However, the approved long-range architecture now includes a first-class **Repository Control Plane / Git Orchestrator**.
-
-长期演化中，Codex Domination 将自动化正常开发所需的分支、worktree、commit、push、PR、CI、修复回流、merge 与同步等机械操作，但不取消总控的最终授权。
-
-Governance rules:
-
-1. Agent task completion is never merge authorization.
-2. Green tests/CI are evidence, not merge authorization.
-3. `PASS`, `MERGE_AUTHORIZED`, and `MERGED` are separate states.
-4. Merge authorization must bind to a concrete PR and exact head SHA.
-5. Any new commit invalidates prior merge authorization.
+1. Agent task completion never implies merge authority.
+2. Merge authorization binds to a concrete PR and exact reviewed head SHA.
+3. Any new commit invalidates previous authorization.
+4. Dirty or unexpected workspace state blocks automation by default.
+5. Destructive repository actions require higher authority than ordinary development actions.
 6. Worker roles cannot self-authorize merge/release.
-7. Destructive Git/repository operations require higher authority than ordinary development operations.
-8. Repository automation is introduced only in the version stages defined by the versioned roadmap; it must not leak into the frozen v0.1 scope.
+7. Git mechanics may be automated; Git authority remains explicit.
 
-Authoritative architecture references:
+---
 
-- `docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md`
-- `docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md`
-- `docs/13-ARCHITECTURE-AMENDMENT-REPOSITORY-CONTROL.md`
+## 7. Evidence Governance / 证据治理
+
+Mechanical evidence may include:
+
+- git diff / changed files
+- tests / coverage
+- lint / type checks
+- build / migrations
+- Docker/service health
+- runtime errors
+- CI / PR state
+- contract deviations
+
+Core rule:
+
+> **Automate evidence, not judgment.**
+
+Evidence collection can be automatic. Controller review remains independent and risk-driven.
+
+---
+
+## 8. Knowledge & Obsidian Governance / 知识与 Obsidian 治理
+
+Möbius maintains machine-readable source-of-truth knowledge.
+
+Obsidian is a first-class **Human Knowledge Interface**, not the runtime database.
+
+Initial direction:
+
+```text
+Möbius structured knowledge
+        ↓
+Knowledge Projection
+        ↓
+Obsidian-compatible Markdown
+```
+
+Knowledge may include:
+
+- architecture decisions
+- stage records
+- Controller decisions
+- failures and reusable fixes
+- runtime compatibility findings
+- engineering lessons
+- research threads
+- product hypotheses
+- value threads
+
+Bidirectional Obsidian synchronization requires a separate ADR covering provenance, conflicts and permissions.
+
+---
+
+## 9. Failure Taxonomy / 故障分类
+
+```text
+F1 — Implementation defect
+     → repair current stage
+
+F2 — Runtime / compatibility defect
+     → repair adapter / compatibility layer
+
+F3 — Contract defect
+     → Controller updates contract / ADR
+
+F4 — Architectural invalidation
+     → stop stage, explicit redesign
+```
+
+Implementation bugs must not silently rewrite the global architecture.
+
+---
+
+## 10. Documentation Authority / 文档权威顺序
+
+For target-system architecture:
+
+```text
+00-PROJECT-CONTROL.md
+        ↓
+20-MOBIUS-MASTER-ARCHITECTURE-v1.md
+        ↓
+Architecture Amendments / ADRs
+        ↓
+11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md
+        ↓
+Stage Technical Design
+        ↓
+Task Contract
+        ↓
+Implementation
+```
+
+`docs/10-MASTER-TECHNICAL-DESIGN.md` remains an important historical/implementation baseline from the Codex-first phase, but it must be interpreted through the official Möbius product identity and the newer canonical target architecture.
+
+No implementation may silently contradict a higher-authority document.
+
+---
+
+## 11. Current Engineering Priority / 当前工程优先级
+
+Despite the expanded target architecture, the immediate implementation priority remains deliberately narrow:
+
+```text
+Codex foundation
+→ real persistent-thread discovery
+→ real local environment validation
+→ Controller gate
+→ structured read
+→ resume / attachment
+→ bounded dispatch
+→ normalized status
+```
+
+Only after these foundations are proven should later stages admit Evidence automation, Role/Project orchestration, Stage Gate execution, Repository Control, Knowledge Projection, Hermes integration and broader multi-runtime operation.
+
+---
+
+## 12. Definition of Long-Term Success / 长期成功定义
+
+Möbius succeeds when a user can think primarily in:
+
+```text
+project
+architecture
+stage
+risk
+decision
+```
+
+while Möbius safely handles the repetitive mechanics of:
+
+```text
+agent routing
+context transport
+execution monitoring
+validation evidence
+Git/worktree/PR/CI
+repair loops
+knowledge extraction
+Obsidian projection
+```
+
+without removing explicit human/Controller authority from control-critical decisions.
