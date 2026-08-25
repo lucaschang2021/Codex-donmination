@@ -1,80 +1,73 @@
-# Möbius / 莫比乌斯
+# Möbius
 
-> **Operating System for AI Engineering Teams.**  
-> **AI 软件工程团队操作系统。**
+**Controller-first operating system for AI engineering teams, built around persistent agent runtimes, stage-gated governance, verifiable evidence, repository automation, and long-term knowledge memory.**
 
-Möbius is a controller-first AI engineering operating system that turns capable agents into a governed software team.
+[简体中文](README.zh-CN.md) · [Master Architecture](docs/20-MOBIUS-MASTER-ARCHITECTURE-v1.md) · [Roadmap](docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md) · [Knowledge / Obsidian](docs/15-MOBIUS-KNOWLEDGE-ARCHITECTURE.md) · [Git Orchestrator](docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md) · [MIT](LICENSE)
 
-It is **Codex-first, not Codex-only**: OpenAI Codex is the reference runtime, Hermes is the first planned additional runtime, and future runtimes can be admitted through a stable adapter boundary.
+> **Status:** Möbius is a pre-alpha, architecture-first open-source project. The target architecture is intentionally documented ahead of implementation. The immediate engineering objective is to prove a reliable Codex control loop before expanding into the full operating system.
 
-Möbius 把 Agent 执行、工程治理、Git/CI、机械证据与长期知识连接成一个持续闭环，让人类把精力放在架构、风险与决策，而不是切窗口、复制粘贴、手工 Git 和重复整理上下文。
+## Why Möbius?
 
-> [!IMPORTANT]
-> Möbius is currently **pre-alpha / architecture-first**. The target system is documented ahead of implementation, but implementation still advances through strict Stage Gates. The immediate engineering proof remains the real Codex control loop.
+AI coding agents can already write, test, inspect, and modify software. The harder problem is coordinating several persistent agents as a disciplined engineering organization: deciding who may do what, preserving project context, collecting evidence, controlling Git state, reviewing risk, admitting stages, and retaining what the team learns.
 
----
-
-## The thesis / 核心命题
+Möbius turns that coordination layer into infrastructure.
 
 > **Agents execute. Git records. Evidence proves. Obsidian remembers. Möbius governs.**
 
-Agent runtimes provide **agency**. Möbius provides **governance**.
+Möbius is **Codex-first, not Codex-only**. OpenAI Codex is the reference runtime. Hermes is the first planned additional runtime. Future runtimes can be admitted through a stable adapter boundary without redefining the governance model.
+
+## Core architecture
+
+Möbius is organized around five explicit planes:
+
+| Plane | Responsibility |
+|---|---|
+| Governance | Project control, role registry, bounded task contracts, Stage Gates, policy, Controller authority |
+| Runtime | CodexRuntime first; HermesRuntime planned; future agent runtimes behind a normalized adapter |
+| Evidence | Execution state, diffs, tests, validation manifests, CI facts, audit evidence |
+| Repository | Git/worktree lifecycle, commit, push, PR, CI observation, exact-state merge authorization, synchronization |
+| Knowledge | Structured engineering memory and Obsidian-compatible human knowledge projection |
 
 ```text
                          Human / Controller
-                                  │
-                                  ▼
-┌────────────────────────────────────────────────────────────┐
-│                         MÖBIUS                             │
-│                                                            │
-│  Governance   Runtime   Evidence   Repository   Knowledge   │
-└───────────────┬──────────┬──────────┬────────────┬──────────┘
-                │          │          │            │
-                │          │          │            └──→ Obsidian
-                │          │          │
-                │          │          └──→ Git / Worktree / CI / PR
-                │          │
-                │          └──→ tests / diff / validation / audit
-                │
-                └──→ Codex / Hermes / Future Runtime
+                                  |
+                                  v
++------------------------------------------------------------+
+|                           MOBIUS                           |
+|                                                            |
+|  Governance   Runtime   Evidence   Repository   Knowledge   |
++---------------+----------+----------+------------+----------+
+                |          |          |            |
+                |          |          |            +--> Obsidian
+                |          |          +--> Git / Worktree / CI / PR
+                |          +--> tests / diff / validation / audit
+                +--> Codex / Hermes / future runtimes
 ```
 
----
+## Controller-first governance
 
-## Five planes / 五大平面
-
-### 1. Governance Plane
-
-Möbius turns AI work into an explicit engineering organization:
+A worker finishing code does not mean a stage is complete. Möbius separates execution from authority.
 
 ```text
-Project Control
-Role Registry
-Bounded Task Contracts
-Stage Gate
-Policy / Permission Boundaries
-Controller Authority
+PLANNED -> ADMITTED -> IMPLEMENTING -> SUBMITTED -> REVIEWING
+                                      ^              |
+                                      +---- FIX -----+
+                                                     +--> BLOCK
+                                                     +--> PASS
+                                                           |
+                                                           v
+                                                  MERGE_AUTHORIZED
+                                                           |
+                                                           v
+                                                        MERGED
+                                                           |
+                                                           v
+                                                        CLOSED
 ```
 
-Canonical stage flow:
+Mechanical work can be automated aggressively. Architecture, risk acceptance, security-sensitive decisions, stage admission, and merge authority remain explicit governance decisions.
 
-```text
-PLANNED → ADMITTED → IMPLEMENTING → SUBMITTED → REVIEWING
-                                      ↑             │
-                                      └── FIX ──────┤
-                                                    ├── BLOCK
-                                                    └── PASS
-                                                         ↓
-                                              MERGE_AUTHORIZED
-                                                         ↓
-                                                     MERGED
-                                                         ↓
-                                                     CLOSED
-```
-
-A worker may finish implementation. It does **not** admit the next stage.
-
-### 2. Runtime Plane
+## Agent runtimes
 
 ```text
 AgentRuntime
@@ -83,193 +76,63 @@ AgentRuntime
 └── FutureRuntime     # explicit admission only
 ```
 
-Candidate normalized capabilities:
+The normalized runtime boundary is expected to cover capabilities such as discovery, context reading, persistent attachment, bounded task dispatch, status observation, interruption, and result collection.
 
-```text
-discover()
-read_context()
-attach()
-dispatch()
-watch()
-interrupt()
-collect_result()
-```
+Codex is the first implementation proof. Hermes extends the proven control plane rather than replacing it.
 
-Codex remains the first product proof. Hermes extends the proven system rather than redefining it.
+## Evidence-first engineering
 
-### 3. Evidence Plane
-
-Möbius does not trust a worker saying “done” as sufficient proof.
-
-Candidate evidence:
-
-```text
-git diff
-changed files
-tests / coverage
-lint / type checks
-build / migrations
-Docker / service health
-runtime errors
-CI / PR state
-contract deviations
-```
+Möbius does not treat an agent saying `done` as sufficient proof. The Evidence Plane can collect machine-verifiable facts such as changed files, Git diffs, tests, coverage, lint/type checks, builds, migrations, Docker/service health, runtime errors, CI state, PR state, and contract deviations.
 
 > **Automate evidence, not judgment.**
 
-Mechanical facts may be automated. Architecture, security and stage admission remain explicit Controller decisions.
+Evidence reduces repeated context and manual reporting while preserving independent Controller review.
 
-### 4. Repository Plane / Git Orchestrator
+## Repository Control / Git Orchestrator
 
-Git is a first-class subsystem:
+Git is a first-class subsystem rather than a collection of shell commands delegated to agents.
 
-```text
-repository inspection
-branch creation / reuse
-worktree lifecycle
-role ↔ workspace binding
-commit / push
-PR creation / update
-CI observation
-merge authorization
-merge
-post-merge synchronization
-```
+The target Repository Plane covers repository inspection, branch creation/reuse, worktree lifecycle, role-to-workspace binding, commit/push, PR creation/update, CI observation, merge authorization, merge execution, and post-merge synchronization.
 
-Intended flow:
-
-```text
-Agent completes task
-      ↓
-Evidence collected
-      ↓
-Commit / Push / PR
-      ↓
-CI
-      ↓
-Controller review
-      ↓
-PASS
-      ↓
-MergeAuthorization bound to exact PR head SHA
-      ↓
-Automatic merge
-      ↓
-Synchronize main + worktrees
-```
-
-If reviewed code changes, old authorization becomes invalid.
+A merge authorization is bound to the exact reviewed PR head SHA. If the reviewed code changes, the previous authorization becomes invalid.
 
 > **Automate Git mechanics. Preserve Git authority.**
 
-### 5. Knowledge Plane + Obsidian
+## Knowledge memory and Obsidian
 
-Möbius preserves what the engineering organization learns:
+Möbius preserves what an AI engineering organization learns: architecture decisions, stage records, Controller decisions, failures and fixes, runtime compatibility findings, engineering lessons, research threads, product hypotheses, and value threads.
 
-```text
-Architecture Decisions
-Stage Records
-Controller Decisions
-Failures & Fixes
-Runtime Compatibility Findings
-Engineering Lessons
-Research Threads
-Product Hypotheses
-Value Threads
-```
-
-Möbius keeps machine-readable source-of-truth state. Obsidian is the first-class **human knowledge interface**:
+Machine-readable Möbius state remains the engineering source of truth. Obsidian is the first-class human knowledge interface:
 
 ```text
 Möbius structured knowledge
-          ↓
+          |
+          v
 Knowledge Projection Engine
-          ↓
+          |
+          v
 Obsidian-compatible Markdown
-          ↓
+          |
+          v
 Human reading / backlinks / annotation / research
 ```
 
-Initial direction is one-way:
+The initial direction is one-way (`Möbius -> Obsidian`). Any future bidirectional mode requires explicit provenance, permissions, and conflict-resolution rules.
 
-```text
-Möbius → Obsidian
-```
+## Bounded engineering contracts
 
-A future bidirectional mode requires separate provenance, permission and conflict-resolution rules.
+Workers receive explicit task packets rather than unconstrained goals. A contract can define project, version/stage, role, runtime, objective, frozen scope, non-goals, allowed files, permission boundaries, acceptance criteria, validation, evidence requirements, failure rules, and report format.
 
----
+Möbius classifies failures so ordinary implementation defects do not silently rewrite the architecture:
 
-## Codex + Hermes
+| Class | Meaning | Default response |
+|---|---|---|
+| F1 | Implementation defect | Fix within the current stage |
+| F2 | Runtime compatibility issue | Fix the runtime adapter |
+| F3 | Contract defect | Controller updates the contract / ADR |
+| F4 | Architecture invalidated | Stop and explicitly redesign |
 
-Möbius does not fuse Codex and Hermes into one giant agent. They plug into the same engineering constitution.
-
-```text
-                     Controller
-                         │
-                    Stage Gate
-                         │
-                  Role Resolution
-                         │
-             ┌───────────┴───────────┐
-             ▼                       ▼
-       Backend Role             Research Role
-        CodexRuntime            HermesRuntime
-             │                       │
-             └───────────┬───────────┘
-                         ▼
-                  Evidence Engine
-                         │
-                 Repository Control
-                         │
-                      PR / CI
-                         │
-                 Controller Review
-                         │
-                 Knowledge Projection
-                         │
-                      Obsidian
-```
-
-Hermes is a **planned integration**, not a currently implemented dependency. Its actual integration surface must pass a dedicated research/ADR gate before implementation.
-
----
-
-## Bounded engineering contracts / 有边界工程契约
-
-Workers receive explicit task packets:
-
-```text
-Project
-Version / Stage
-Role
-Runtime
-Objective
-Frozen Scope
-Non-goals
-Allowed Files
-Permission Boundary
-Acceptance Criteria
-Required Validation
-Evidence Requirements
-Failure Rules
-Report Format
-```
-
-Failure classification:
-
-```text
-F1 — implementation defect      → fix current stage
-F2 — runtime compatibility      → fix runtime adapter
-F3 — contract defect            → Controller updates contract / ADR
-F4 — architecture invalidated   → stop and explicitly redesign
-```
-
-Ordinary bugs should not silently churn the master architecture.
-
----
-
-## Ideal experience / 理想体验
+## Ideal experience
 
 ```text
 You:
@@ -296,66 +159,58 @@ Obsidian project memory updated.
 Next stage ready for admission.
 ```
 
-The user thinks in **project, architecture, stage, risk and decision** — not in thread switching, copy/paste, Git boilerplate or manual knowledge cleanup.
+The goal is for the human to think in project, architecture, stage, risk, and decision — not thread switching, copy/paste, Git boilerplate, or manual knowledge cleanup.
 
----
-
-## Roadmap / v0.1 → v1.1
+## Roadmap
 
 | Version | Target |
 |---|---|
 | **v0.1** | Codex persistent-thread discovery foundation |
-| **v0.2** | structured thread/context read |
-| **v0.3** | resume / persistent attachment |
-| **v0.4** | bounded task dispatch |
-| **v0.5** | normalized execution status |
-| **v0.6** | evidence / validation manifests |
-| **v0.7** | role registry + project bindings |
-| **v0.8** | executable Stage Gate methodology |
-| **v0.9** | minimal MCP control surface |
-| **v1.0** | complete Codex-first engineering control plane |
+| **v0.2** | Structured thread/context read |
+| **v0.3** | Resume / persistent attachment |
+| **v0.4** | Bounded task dispatch |
+| **v0.5** | Normalized execution status |
+| **v0.6** | Evidence / validation manifests |
+| **v0.7** | Role registry + project bindings |
+| **v0.8** | Executable Stage Gate methodology |
+| **v0.9** | Minimal MCP control surface |
+| **v1.0** | Complete Codex-first engineering control plane |
 | **v1.1** | Repository Control + workflow automation + Knowledge Projection + Hermes/multi-runtime expansion path |
 
-The implementation remains **Codex-first**. Repository automation, Obsidian and Hermes extend a proven control plane; they do not bypass the first reliable runtime proof.
+Repository automation, Obsidian, and Hermes extend a proven control plane; they do not bypass the first reliable runtime proof.
 
----
+## Documentation
 
-## Documentation / 技术文档
+- [`docs/00-PROJECT-CONTROL.md`](docs/00-PROJECT-CONTROL.md) — governance baseline
+- [`docs/02-R0-INTEGRATION-DECISION.md`](docs/02-R0-INTEGRATION-DECISION.md) — Codex integration decision
+- [`docs/10-MASTER-TECHNICAL-DESIGN.md`](docs/10-MASTER-TECHNICAL-DESIGN.md) — CodexRuntime implementation baseline
+- [`docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md`](docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md) — staged roadmap
+- [`docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md`](docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md) — Repository Control architecture
+- [`docs/14-AI-ENGINEERING-OS-ARCHITECTURE.md`](docs/14-AI-ENGINEERING-OS-ARCHITECTURE.md) — multi-runtime architecture
+- [`docs/15-MOBIUS-KNOWLEDGE-ARCHITECTURE.md`](docs/15-MOBIUS-KNOWLEDGE-ARCHITECTURE.md) — Knowledge + Obsidian architecture
+- [`docs/20-MOBIUS-MASTER-ARCHITECTURE-v1.md`](docs/20-MOBIUS-MASTER-ARCHITECTURE-v1.md) — canonical whole-product target architecture
+- [`docs/21-MOBIUS-CROSS-PLANE-CONTRACT.md`](docs/21-MOBIUS-CROSS-PLANE-CONTRACT.md) — cross-plane contracts and authority boundaries
 
-- [`docs/00-PROJECT-CONTROL.md`](./docs/00-PROJECT-CONTROL.md) — governance baseline
-- [`docs/02-R0-INTEGRATION-DECISION.md`](./docs/02-R0-INTEGRATION-DECISION.md) — Codex integration decision
-- [`docs/10-MASTER-TECHNICAL-DESIGN.md`](./docs/10-MASTER-TECHNICAL-DESIGN.md) — historical/implementation master baseline
-- [`docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md`](./docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md) — staged roadmap
-- [`docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md`](./docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md) — Repository Control architecture
-- [`docs/14-AI-ENGINEERING-OS-ARCHITECTURE.md`](./docs/14-AI-ENGINEERING-OS-ARCHITECTURE.md) — multi-runtime target architecture
-- [`docs/15-MOBIUS-KNOWLEDGE-ARCHITECTURE.md`](./docs/15-MOBIUS-KNOWLEDGE-ARCHITECTURE.md) — Knowledge + Obsidian architecture
-- [`docs/20-MOBIUS-MASTER-ARCHITECTURE-v1.md`](./docs/20-MOBIUS-MASTER-ARCHITECTURE-v1.md) — **canonical target architecture**
-- [`docs/21-MOBIUS-CROSS-PLANE-CONTRACT.md`](./docs/21-MOBIUS-CROSS-PLANE-CONTRACT.md) — cross-plane contracts and authority boundaries
-
-Documentation authority for target-system questions should prefer `20-MOBIUS-MASTER-ARCHITECTURE-v1.md`; stage-specific implementation still remains constrained by frozen stage contracts and Controller gates.
-
----
-
-## Current status / 当前状态
+## Current status
 
 **Pre-alpha / architecture-first implementation.**
 
-Immediate engineering priority:
+The immediate engineering sequence is deliberately narrow:
 
 ```text
 Codex foundation
-→ discover real persistent threads
-→ validate in a real local Codex environment
-→ Controller gate
-→ read / resume / dispatch / status
+-> discover real persistent threads
+-> validate in a real local Codex environment
+-> Controller gate
+-> read / resume / dispatch / status
 ```
 
-Official product name: **Möbius / 莫比乌斯**.
-
-Historical codename: **Codex Domination**.
-
----
+The full architecture is documented now so later implementation can fill a stable target rather than redesigning the product at every stage.
 
 ## License
 
-MIT License. See [`LICENSE`](./LICENSE).
+Möbius is licensed under the [MIT License](LICENSE).
+
+---
+
+If Möbius matches how you want AI engineering teams to work, testing the early runtime loop, opening an issue, contributing an adapter, or starring the repository all help the project mature.
