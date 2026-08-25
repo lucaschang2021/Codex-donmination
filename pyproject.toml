@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "codex-domination"
+version = "0.1.0.dev0"
+description = "Controller-first orchestration bridge for persistent Codex agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+  "openai-codex",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.15",
+]
+
+[project.scripts]
+codex-domination = "codex_domination.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/codex_domination"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
