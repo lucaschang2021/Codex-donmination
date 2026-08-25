@@ -1,259 +1,361 @@
-# Codex Domination
+# Möbius / 莫比乌斯
 
-> **Control multiple persistent Codex agents from one controller.**  
-> **由一个总控统一读取、调度并监督多个持久化 Codex Agent。**
+> **Operating System for AI Engineering Teams.**  
+> **AI 软件工程团队操作系统。**
 
-Codex Domination is an experimental orchestration bridge for multi-agent Codex workflows. It is designed for developers who use several long-lived Codex threads as specialized engineering roles and want a single controller to understand their conversations, dispatch tasks, inspect status, and coordinate handoffs.
+Möbius is a controller-first AI engineering operating system that turns capable agents into a governed software team.
 
-Codex Domination 是一个面向多 Codex Agent 工作流的实验性编排桥。它服务于这样一种开发方式：多个长期存在的 Codex 对话分别承担后端、前端、集成、发布等角色，而一个总控能够统一读取对话、派发任务、查看状态并完成角色间交接。
+It is **Codex-first, not Codex-only**: OpenAI Codex is the reference runtime, Hermes is the first planned additional runtime, and future runtimes can be admitted through a stable adapter boundary.
+
+Möbius 把 Agent 执行、工程治理、Git/CI、机械证据与长期知识连接成一个持续闭环，让人类把精力放在架构、风险与决策，而不是切窗口、复制粘贴、手工 Git 和重复整理上下文。
 
 > [!IMPORTANT]
-> This repository is an early-stage project definition. The first objective is a narrow, verifiable v0.1 — not a full autonomous software-development platform.
->
-> 本仓库目前处于早期项目定义阶段。第一目标是完成一个狭窄、可验证的 v0.1，而不是立即构建完整的自主软件开发平台。
+> Möbius is currently **pre-alpha / architecture-first**. The target system is documented ahead of implementation, but implementation still advances through strict Stage Gates. The immediate engineering proof remains the real Codex control loop.
 
-## Why / 为什么
+---
 
-Today, multi-Codex workflows often require a human to manually switch between threads, copy task instructions, summarize completion reports, check execution state, and relay results back to a controller. That works, but it creates duplicated context, token overhead, and coordination friction.
+## The thesis / 核心命题
 
-目前，多 Codex 工作流往往仍依赖人工在不同对话之间切换：复制任务、转交结果、总结执行情况、检查状态，再把信息传回总控。这种方式可以工作，但会产生大量重复上下文、额外 token 消耗和协调成本。
+> **Agents execute. Git records. Evidence proves. Obsidian remembers. Möbius governs.**
 
-Codex Domination aims to turn that manual relay layer into a structured bridge:
-
-Codex Domination 的目标，是把这层人工中转变成结构化桥接层：
+Agent runtimes provide **agency**. Möbius provides **governance**.
 
 ```text
-                    Controller / 总控
-                           │
-                           ▼
-                  Codex Domination
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-      Backend          Frontend        Integration
-      后端 Agent        前端 Agent        集成 Agent
-          │                │                │
-          └────────────────┼────────────────┘
-                           ▼
-                    Release / GitHub
-                     发布 / GitHub
+                         Human / Controller
+                                  │
+                                  ▼
+┌────────────────────────────────────────────────────────────┐
+│                         MÖBIUS                             │
+│                                                            │
+│  Governance   Runtime   Evidence   Repository   Knowledge   │
+└───────────────┬──────────┬──────────┬────────────┬──────────┘
+                │          │          │            │
+                │          │          │            └──→ Obsidian
+                │          │          │
+                │          │          └──→ Git / Worktree / CI / PR
+                │          │
+                │          └──→ tests / diff / validation / audit
+                │
+                └──→ Codex / Hermes / Future Runtime
 ```
 
-The controller should spend its reasoning budget on architecture, review, risk and decisions — not on repeatedly reconstructing mechanical execution evidence.
+---
 
-总控应该把推理预算花在架构、审查、风险和决策上，而不是反复重建机械性的执行证据。
+## Five planes / 五大平面
 
-## v0.1 — The smallest useful bridge / 最小可用桥
+### 1. Governance Plane
 
-The first release deliberately targets only four capabilities:
-
-第一版刻意只解决四件事：
-
-- **`list_threads`** — discover available persistent Codex threads / 列出可用的持久化 Codex 对话
-- **`read_thread`** — read structured conversation and execution history / 读取结构化对话与执行历史
-- **`send_task`** — dispatch an instruction to a selected Codex thread / 向指定 Codex 对话派发任务
-- **`watch_status`** — observe task/thread state and completion signals / 观察任务与对话状态及完成信号
-
-A future MCP-facing interface may expose a small surface such as:
-
-未来可通过 MCP 暴露极小的接口面，例如：
+Möbius turns AI work into an explicit engineering organization:
 
 ```text
-codex.list_threads()
-codex.read_thread(thread_id)
-codex.send_task(thread_id, prompt)
-codex.get_status(thread_id)
+Project Control
+Role Registry
+Bounded Task Contracts
+Stage Gate
+Policy / Permission Boundaries
+Controller Authority
 ```
 
-The exact API is **not frozen yet**. The goal of v0.1 is to validate the control loop first.
-
-具体 API **尚未冻结**。v0.1 首先验证的是控制闭环本身。
-
-## Core design / 核心设计
-
-### 1. Conversation Read / 对话读取
-
-Read useful structured state instead of scraping the UI whenever possible:
-
-尽可能读取结构化状态，而不是依赖 UI 抓取：
+Canonical stage flow:
 
 ```text
-threads
-messages
-agent responses
-tool calls
-approvals
-diffs
-execution state
+PLANNED → ADMITTED → IMPLEMENTING → SUBMITTED → REVIEWING
+                                      ↑             │
+                                      └── FIX ──────┤
+                                                    ├── BLOCK
+                                                    └── PASS
+                                                         ↓
+                                              MERGE_AUTHORIZED
+                                                         ↓
+                                                     MERGED
+                                                         ↓
+                                                     CLOSED
 ```
 
-### 2. Task Dispatch / 任务派发
+A worker may finish implementation. It does **not** admit the next stage.
 
-A controller should be able to select a persistent Codex role and send a task without manual copy/paste.
-
-总控应当能够直接选择一个长期存在的 Codex 角色并派发任务，而不需要人工复制粘贴。
+### 2. Runtime Plane
 
 ```text
-Controller
-   ├──> Backend
-   ├──> Frontend
-   ├──> Integration
-   └──> Release
+AgentRuntime
+├── CodexRuntime      # reference implementation
+├── HermesRuntime     # planned second runtime
+└── FutureRuntime     # explicit admission only
 ```
 
-### 3. Structured Handoff / 结构化交接
-
-Developer agents should not need to spend large amounts of context rewriting what machines can already collect.
-
-开发 Agent 不应该再消耗大量上下文，重复描述机器本来就能自动收集的信息。
-
-A handoff can eventually contain:
-
-未来的交接信息可包括：
-
-```yaml
-task: BE-4
-status: completed
-changed_files: 11
-tests: 82 passed
-branch: feat/be-4
-needs_controller_review: true
-```
-
-### 4. Controller-first governance / 总控优先治理
-
-Codex Domination is **not** intended to remove the controller. Mechanical evidence can be automated; independent reasoning and review should remain explicit.
-
-Codex Domination **不是**为了消灭总控。机械证据可以自动化，但独立推理、复核与准入决策仍应被明确保留。
-
-A target stage-gate loop:
-
-目标 Stage Gate 流程：
+Candidate normalized capabilities:
 
 ```text
-Controller admits stage
-        ↓
-Developer agent executes
-        ↓
-Bridge collects evidence
-        ↓
-Controller reviews risk + diff + validation
-        ↓
-PASS / FIX / BLOCK
-        ↓
-Merge / next stage
+discover()
+read_context()
+attach()
+dispatch()
+watch()
+interrupt()
+collect_result()
 ```
 
-## Architecture direction / 架构方向
+Codex remains the first product proof. Hermes extends the proven system rather than redefining it.
 
-The preferred direction is a proper execution-layer integration rather than screen automation:
+### 3. Evidence Plane
 
-优先路线是执行层集成，而不是屏幕自动化：
+Möbius does not trust a worker saying “done” as sufficient proof.
+
+Candidate evidence:
 
 ```text
-Codex App Server / Codex SDK / supported hooks
-                    │
-                    ▼
-            Codex Domination Bridge
-                    │
-        ┌───────────┼───────────┐
-        ▼           ▼           ▼
-       MCP       Event Store   Validation
-                    │
-                    ▼
-                Controller
+git diff
+changed files
+tests / coverage
+lint / type checks
+build / migrations
+Docker / service health
+runtime errors
+CI / PR state
+contract deviations
 ```
 
-Potential internal modules:
+> **Automate evidence, not judgment.**
 
-潜在内部模块：
+Mechanical facts may be automated. Architecture, security and stage admission remain explicit Controller decisions.
+
+### 4. Repository Plane / Git Orchestrator
+
+Git is a first-class subsystem:
 
 ```text
-src/
-├── app_server_client.*
-├── thread_manager.*
-├── task_dispatcher.*
-├── event_store.*
-├── status_watcher.*
-└── mcp_server.*
+repository inspection
+branch creation / reuse
+worktree lifecycle
+role ↔ workspace binding
+commit / push
+PR creation / update
+CI observation
+merge authorization
+merge
+post-merge synchronization
 ```
 
-Implementation language and protocol details will be selected only after validating the current Codex integration surface.
-
-具体实现语言与协议细节将在验证当前 Codex 可用集成接口后再冻结。
-
-## Non-goals for v0.1 / v0.1 明确不做
-
-To keep the first release fast and defensible, v0.1 will **not** attempt to build:
-
-为了让首版足够快、足够清晰，v0.1 **不会**尝试构建：
-
-- a full DevOS / 完整 DevOS
-- a large graphical dashboard / 大型图形化控制台
-- Obsidian or knowledge-base integration / Obsidian 或知识库集成
-- GitHub PR orchestration / GitHub PR 全自动编排
-- autonomous merge decisions / 自主合并决策
-- general-purpose multi-model agent framework / 通用多模型 Agent 框架
-- UI scraping as the primary architecture / 以 UI 抓取作为核心架构
-
-## Roadmap / 路线图
-
-### v0.1 — Bridge
-- [ ] Validate the supported Codex integration surface / 验证 Codex 可用集成接口
-- [ ] List persistent threads / 列出持久化对话
-- [ ] Read a selected thread / 读取指定对话
-- [ ] Send a task to a selected thread / 向指定对话派发任务
-- [ ] Observe task status / 获取任务状态
-- [ ] Provide a minimal MCP-compatible control surface / 提供最小 MCP 控制面
-
-### v0.2 — Evidence
-- [ ] Structured task events / 结构化任务事件
-- [ ] Diff and validation evidence / Diff 与验证证据
-- [ ] Machine-generated handoff manifest / 自动生成交接清单
-- [ ] Token/context reduction experiments / Token 与上下文节省实验
-
-### v0.3 — Orchestration
-- [ ] Controller-driven stage gates / 总控驱动 Stage Gate
-- [ ] Role routing / 角色路由
-- [ ] Failure/retry semantics / 失败与重试语义
-- [ ] Multi-project coordination experiments / 多项目协调实验
-
-See [`ROADMAP.md`](./ROADMAP.md) for the project boundary and milestone definitions.
-
-完整项目边界和里程碑定义见 [`ROADMAP.md`](./ROADMAP.md)。
-
-## Project principles / 项目原则
-
-1. **Persistent agents over disposable prompts.** / 优先长期 Agent，而不是一次性 Prompt。
-2. **Structured state over repeated summaries.** / 优先结构化状态，而不是重复总结。
-3. **Automate evidence, not judgment.** / 自动化证据，不自动化判断。
-4. **Controller remains the final gate.** / 总控保留最终准入权。
-5. **Small surface before large platform.** / 先做小而稳的接口，再谈大平台。
-6. **No UI scraping unless there is no supported integration path.** / 除非没有受支持的集成路径，否则不依赖 UI 抓取。
-
-## Status / 当前状态
-
-**Project definition / Pre-alpha.** No production-ready implementation exists yet.
-
-**项目定义阶段 / Pre-alpha。** 当前尚无可用于生产环境的实现。
-
-The immediate objective is to prove one end-to-end loop:
-
-当前唯一最高优先级，是证明一个完整闭环：
+Intended flow:
 
 ```text
-Controller
-  → discover Codex thread
-  → read thread
-  → dispatch task
-  → observe completion
-  → receive structured evidence
+Agent completes task
+      ↓
+Evidence collected
+      ↓
+Commit / Push / PR
+      ↓
+CI
+      ↓
+Controller review
+      ↓
+PASS
+      ↓
+MergeAuthorization bound to exact PR head SHA
+      ↓
+Automatic merge
+      ↓
+Synchronize main + worktrees
 ```
 
-Once that loop works reliably, the project can grow from a bridge into a true Codex orchestration layer.
+If reviewed code changes, old authorization becomes invalid.
 
-只有当这条链路稳定成立之后，项目才会从“桥”继续成长为真正的 Codex 编排层。
+> **Automate Git mechanics. Preserve Git authority.**
 
-## License / 许可证
+### 5. Knowledge Plane + Obsidian
+
+Möbius preserves what the engineering organization learns:
+
+```text
+Architecture Decisions
+Stage Records
+Controller Decisions
+Failures & Fixes
+Runtime Compatibility Findings
+Engineering Lessons
+Research Threads
+Product Hypotheses
+Value Threads
+```
+
+Möbius keeps machine-readable source-of-truth state. Obsidian is the first-class **human knowledge interface**:
+
+```text
+Möbius structured knowledge
+          ↓
+Knowledge Projection Engine
+          ↓
+Obsidian-compatible Markdown
+          ↓
+Human reading / backlinks / annotation / research
+```
+
+Initial direction is one-way:
+
+```text
+Möbius → Obsidian
+```
+
+A future bidirectional mode requires separate provenance, permission and conflict-resolution rules.
+
+---
+
+## Codex + Hermes
+
+Möbius does not fuse Codex and Hermes into one giant agent. They plug into the same engineering constitution.
+
+```text
+                     Controller
+                         │
+                    Stage Gate
+                         │
+                  Role Resolution
+                         │
+             ┌───────────┴───────────┐
+             ▼                       ▼
+       Backend Role             Research Role
+        CodexRuntime            HermesRuntime
+             │                       │
+             └───────────┬───────────┘
+                         ▼
+                  Evidence Engine
+                         │
+                 Repository Control
+                         │
+                      PR / CI
+                         │
+                 Controller Review
+                         │
+                 Knowledge Projection
+                         │
+                      Obsidian
+```
+
+Hermes is a **planned integration**, not a currently implemented dependency. Its actual integration surface must pass a dedicated research/ADR gate before implementation.
+
+---
+
+## Bounded engineering contracts / 有边界工程契约
+
+Workers receive explicit task packets:
+
+```text
+Project
+Version / Stage
+Role
+Runtime
+Objective
+Frozen Scope
+Non-goals
+Allowed Files
+Permission Boundary
+Acceptance Criteria
+Required Validation
+Evidence Requirements
+Failure Rules
+Report Format
+```
+
+Failure classification:
+
+```text
+F1 — implementation defect      → fix current stage
+F2 — runtime compatibility      → fix runtime adapter
+F3 — contract defect            → Controller updates contract / ADR
+F4 — architecture invalidated   → stop and explicitly redesign
+```
+
+Ordinary bugs should not silently churn the master architecture.
+
+---
+
+## Ideal experience / 理想体验
+
+```text
+You:
+Continue FlowTracer.
+
+Möbius:
+Current stage: BE-7.
+Backend role resolved to CodexRuntime.
+Frozen contract loaded.
+Worktree prepared.
+Task dispatched.
+Implementation completed.
+82 tests passed.
+CI passed.
+1 P2 issue found during independent review.
+Repair task returned to Backend.
+Second validation passed.
+Awaiting final merge authorization.
+
+After merge:
+Stage record finalized.
+Engineering knowledge extracted.
+Obsidian project memory updated.
+Next stage ready for admission.
+```
+
+The user thinks in **project, architecture, stage, risk and decision** — not in thread switching, copy/paste, Git boilerplate or manual knowledge cleanup.
+
+---
+
+## Roadmap / v0.1 → v1.1
+
+| Version | Target |
+|---|---|
+| **v0.1** | Codex persistent-thread discovery foundation |
+| **v0.2** | structured thread/context read |
+| **v0.3** | resume / persistent attachment |
+| **v0.4** | bounded task dispatch |
+| **v0.5** | normalized execution status |
+| **v0.6** | evidence / validation manifests |
+| **v0.7** | role registry + project bindings |
+| **v0.8** | executable Stage Gate methodology |
+| **v0.9** | minimal MCP control surface |
+| **v1.0** | complete Codex-first engineering control plane |
+| **v1.1** | Repository Control + workflow automation + Knowledge Projection + Hermes/multi-runtime expansion path |
+
+The implementation remains **Codex-first**. Repository automation, Obsidian and Hermes extend a proven control plane; they do not bypass the first reliable runtime proof.
+
+---
+
+## Documentation / 技术文档
+
+- [`docs/00-PROJECT-CONTROL.md`](./docs/00-PROJECT-CONTROL.md) — governance baseline
+- [`docs/02-R0-INTEGRATION-DECISION.md`](./docs/02-R0-INTEGRATION-DECISION.md) — Codex integration decision
+- [`docs/10-MASTER-TECHNICAL-DESIGN.md`](./docs/10-MASTER-TECHNICAL-DESIGN.md) — historical/implementation master baseline
+- [`docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md`](./docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md) — staged roadmap
+- [`docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md`](./docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md) — Repository Control architecture
+- [`docs/14-AI-ENGINEERING-OS-ARCHITECTURE.md`](./docs/14-AI-ENGINEERING-OS-ARCHITECTURE.md) — multi-runtime target architecture
+- [`docs/15-MOBIUS-KNOWLEDGE-ARCHITECTURE.md`](./docs/15-MOBIUS-KNOWLEDGE-ARCHITECTURE.md) — Knowledge + Obsidian architecture
+- [`docs/20-MOBIUS-MASTER-ARCHITECTURE-v1.md`](./docs/20-MOBIUS-MASTER-ARCHITECTURE-v1.md) — **canonical target architecture**
+- [`docs/21-MOBIUS-CROSS-PLANE-CONTRACT.md`](./docs/21-MOBIUS-CROSS-PLANE-CONTRACT.md) — cross-plane contracts and authority boundaries
+
+Documentation authority for target-system questions should prefer `20-MOBIUS-MASTER-ARCHITECTURE-v1.md`; stage-specific implementation still remains constrained by frozen stage contracts and Controller gates.
+
+---
+
+## Current status / 当前状态
+
+**Pre-alpha / architecture-first implementation.**
+
+Immediate engineering priority:
+
+```text
+Codex foundation
+→ discover real persistent threads
+→ validate in a real local Codex environment
+→ Controller gate
+→ read / resume / dispatch / status
+```
+
+Official product name: **Möbius / 莫比乌斯**.
+
+Historical codename: **Codex Domination**.
+
+---
+
+## License
 
 MIT License. See [`LICENSE`](./LICENSE).
