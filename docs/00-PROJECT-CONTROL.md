@@ -175,3 +175,26 @@ Highest-risk areas for controller review:
 v0.1 is successful when a controller can operate multiple persistent Codex roles without manually switching windows for the basic control loop, while retaining explicit final authority.
 
 当总控能够在不手工切换窗口的情况下完成“发现 → 读取 → 派发 → 状态观察”的基础闭环，并仍保留最终决策权时，v0.1 即视为成功。
+
+## 8. Long-range Repository Control Governance / 长期仓库控制治理
+
+The frozen v0.1 scope above remains unchanged. However, the approved long-range architecture now includes a first-class **Repository Control Plane / Git Orchestrator**.
+
+长期演化中，Codex Domination 将自动化正常开发所需的分支、worktree、commit、push、PR、CI、修复回流、merge 与同步等机械操作，但不取消总控的最终授权。
+
+Governance rules:
+
+1. Agent task completion is never merge authorization.
+2. Green tests/CI are evidence, not merge authorization.
+3. `PASS`, `MERGE_AUTHORIZED`, and `MERGED` are separate states.
+4. Merge authorization must bind to a concrete PR and exact head SHA.
+5. Any new commit invalidates prior merge authorization.
+6. Worker roles cannot self-authorize merge/release.
+7. Destructive Git/repository operations require higher authority than ordinary development operations.
+8. Repository automation is introduced only in the version stages defined by the versioned roadmap; it must not leak into the frozen v0.1 scope.
+
+Authoritative architecture references:
+
+- `docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md`
+- `docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md`
+- `docs/13-ARCHITECTURE-AMENDMENT-REPOSITORY-CONTROL.md`
