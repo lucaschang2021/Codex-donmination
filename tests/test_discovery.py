@@ -1,3 +1,6 @@
+import pytest
+
+from codex_domination.cli import build_parser
 from codex_domination.discovery import ThreadDiscoveryService, normalize_thread_list_response
 
 
@@ -72,3 +75,10 @@ def test_service_uses_official_thread_list_surface():
 
     assert fake.limit == 25
     assert [thread.thread_id for thread in result] == ["thread-2"]
+
+
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_cli_rejects_non_positive_limit(value):
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["threads", "--limit", value])
