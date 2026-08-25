@@ -1,259 +1,578 @@
 # Codex Domination
 
-> **Control multiple persistent Codex agents from one controller.**  
-> **由一个总控统一读取、调度并监督多个持久化 Codex Agent。**
+> **A controller-first operating system for AI software engineering teams.**  
+> **面向 AI 软件工程团队的总控优先开发操作系统。**
 
-Codex Domination is an experimental orchestration bridge for multi-agent Codex workflows. It is designed for developers who use several long-lived Codex threads as specialized engineering roles and want a single controller to understand their conversations, dispatch tasks, inspect status, and coordinate handoffs.
+Codex Domination is an experimental AI engineering control plane that turns persistent coding agents into a structured software team.
 
-Codex Domination 是一个面向多 Codex Agent 工作流的实验性编排桥。它服务于这样一种开发方式：多个长期存在的 Codex 对话分别承担后端、前端、集成、发布等角色，而一个总控能够统一读取对话、派发任务、查看状态并完成角色间交接。
+It is **Codex-first, not Codex-only**: OpenAI Codex is the first and reference runtime, while Hermes is the first planned additional agent runtime. The upper engineering system — roles, bounded tasks, evidence, stage gates, repository control, audit and final authority — remains independent from any single agent runtime.
+
+Codex Domination 是一套实验性的 AI 软件工程控制平面，它把多个长期存在的 AI Agent 组织成结构化的软件开发团队。
+
+项目坚持 **Codex-first, not Codex-only**：OpenAI Codex 是第一个、也是基准 Agent Runtime；Hermes 是首个计划接入的第二运行时。上层的角色、任务契约、证据、Stage Gate、Git 控制、审计与最终授权不绑定单一 Agent。
 
 > [!IMPORTANT]
-> This repository is an early-stage project definition. The first objective is a narrow, verifiable v0.1 — not a full autonomous software-development platform.
+> The repository is still **pre-alpha**. The architecture intentionally describes the target system ahead of implementation. The immediate engineering path remains narrow: prove the Codex control loop first, then expand the proven control plane.
 >
-> 本仓库目前处于早期项目定义阶段。第一目标是完成一个狭窄、可验证的 v0.1，而不是立即构建完整的自主软件开发平台。
+> 本仓库仍处于 **Pre-alpha**。架构文档会先于实现描述终局系统，但实际开发仍按窄范围逐阶段推进：先验证 Codex 控制闭环，再扩展已经被证明可靠的控制平面。
 
-## Why / 为什么
+---
 
-Today, multi-Codex workflows often require a human to manually switch between threads, copy task instructions, summarize completion reports, check execution state, and relay results back to a controller. That works, but it creates duplicated context, token overhead, and coordination friction.
+## The idea / 核心想法
 
-目前，多 Codex 工作流往往仍依赖人工在不同对话之间切换：复制任务、转交结果、总结执行情况、检查状态，再把信息传回总控。这种方式可以工作，但会产生大量重复上下文、额外 token 消耗和协调成本。
-
-Codex Domination aims to turn that manual relay layer into a structured bridge:
-
-Codex Domination 的目标，是把这层人工中转变成结构化桥接层：
+Today, advanced AI-assisted development often looks like this:
 
 ```text
-                    Controller / 总控
-                           │
-                           ▼
-                  Codex Domination
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-      Backend          Frontend        Integration
-      后端 Agent        前端 Agent        集成 Agent
-          │                │                │
-          └────────────────┼────────────────┘
-                           ▼
-                    Release / GitHub
-                     发布 / GitHub
+Human
+ ├── opens Backend agent
+ ├── copies task
+ ├── waits
+ ├── copies result
+ ├── checks Git
+ ├── checks tests
+ ├── opens Integration agent
+ ├── repeats context
+ └── manually decides what happens next
 ```
 
-The controller should spend its reasoning budget on architecture, review, risk and decisions — not on repeatedly reconstructing mechanical execution evidence.
+The individual agents may be powerful, but the **engineering organization around them is still manual**.
 
-总控应该把推理预算花在架构、审查、风险和决策上，而不是反复重建机械性的执行证据。
-
-## v0.1 — The smallest useful bridge / 最小可用桥
-
-The first release deliberately targets only four capabilities:
-
-第一版刻意只解决四件事：
-
-- **`list_threads`** — discover available persistent Codex threads / 列出可用的持久化 Codex 对话
-- **`read_thread`** — read structured conversation and execution history / 读取结构化对话与执行历史
-- **`send_task`** — dispatch an instruction to a selected Codex thread / 向指定 Codex 对话派发任务
-- **`watch_status`** — observe task/thread state and completion signals / 观察任务与对话状态及完成信号
-
-A future MCP-facing interface may expose a small surface such as:
-
-未来可通过 MCP 暴露极小的接口面，例如：
+Codex Domination moves that coordination into a control plane:
 
 ```text
-codex.list_threads()
-codex.read_thread(thread_id)
-codex.send_task(thread_id, prompt)
-codex.get_status(thread_id)
+                         Human / Product Owner
+                                  │
+                                  ▼
+                         Controller / 总控
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────┐
+│                 Codex Domination                     │
+│                                                      │
+│ Project Control  • Role Registry  • Stage Gate       │
+│ Task Contracts   • Evidence       • Git Control      │
+│ Audit / Policy   • MCP / CLI      • Runtime Routing  │
+└───────────────────────────┬──────────────────────────┘
+                            │
+                    Agent Runtime Layer
+                            │
+                ┌───────────┴───────────┐
+                ▼                       ▼
+             Codex                   Hermes
+       persistent coding       autonomous agent roles
+                            │
+                            ▼
+               Git / Worktrees / CI / GitHub
 ```
 
-The exact API is **not frozen yet**. The goal of v0.1 is to validate the control loop first.
+The Controller spends its reasoning budget on architecture, review, risk and decisions — not on mechanical relay.
 
-具体 API **尚未冻结**。v0.1 首先验证的是控制闭环本身。
+总控把推理预算花在架构、审查、风险与决策上，而不是不停复制粘贴、切窗口和手工操作 Git。
 
-## Core design / 核心设计
+---
 
-### 1. Conversation Read / 对话读取
+## Product philosophy / 产品哲学
 
-Read useful structured state instead of scraping the UI whenever possible:
+### Agency + Governance
 
-尽可能读取结构化状态，而不是依赖 UI 抓取：
+Agent runtimes provide **agency**:
+
+- reasoning;
+- planning;
+- tool use;
+- coding;
+- execution;
+- recovery;
+- artifact generation.
+
+Codex Domination provides **governance**:
+
+- which role owns the work;
+- which runtime executes it;
+- what the task boundary is;
+- what workspace may be modified;
+- what evidence is required;
+- whether the stage passed;
+- whether a merge is authorized;
+- whether the next stage may start.
+
+> **Agency without governance becomes chaos. Governance without capable agents becomes bureaucracy.**
+
+---
+
+## What it eventually does / 最终功能
+
+### 1. Persistent Agent Runtime Control
+
+Discover, read, resume, dispatch and observe long-lived agent contexts.
+
+Reference runtime:
 
 ```text
-threads
-messages
-agent responses
-tool calls
-approvals
-diffs
-execution state
+CodexRuntime
+  discover      → persistent Codex threads
+  read_context  → structured thread history
+  attach        → resume persistent thread
+  dispatch      → bounded turn/task
+  watch         → execution events/status
+  interrupt     → stop active execution
+  result        → terminal result
 ```
 
-### 2. Task Dispatch / 任务派发
+Planned expansion:
 
-A controller should be able to select a persistent Codex role and send a task without manual copy/paste.
+```text
+AgentRuntime
+├── CodexRuntime      # reference implementation
+├── HermesRuntime     # planned second runtime
+└── FutureRuntime     # later, explicit admission only
+```
 
-总控应当能够直接选择一个长期存在的 Codex 角色并派发任务，而不需要人工复制粘贴。
+### 2. Role Registry
+
+A persistent agent becomes an engineering role instead of an anonymous chat.
 
 ```text
 Controller
-   ├──> Backend
-   ├──> Frontend
-   ├──> Integration
-   └──> Release
+Backend
+Frontend
+Integration
+Research
+Security Review
+GitHub / Release
 ```
 
-### 3. Structured Handoff / 结构化交接
+Each role may bind:
 
-Developer agents should not need to spend large amounts of context rewriting what machines can already collect.
+```text
+runtime
+agent/thread ID
+project
+workspace/worktree
+allowed paths
+forbidden actions
+validation profile
+stage eligibility
+```
 
-开发 Agent 不应该再消耗大量上下文，重复描述机器本来就能自动收集的信息。
+A role is a governance identity, not a model/provider identity.
 
-A handoff can eventually contain:
+### 3. Bounded Task Contracts
 
-未来的交接信息可包括：
+Agents receive structured work packages rather than vague open-ended prompts.
+
+```text
+Project
+Version / Stage
+Role
+Runtime
+Objective
+Frozen Scope
+Non-goals
+Allowed Files
+Permission Boundary
+Acceptance Criteria
+Required Validation
+Evidence Requirements
+Failure Rules
+Report Format
+```
+
+### 4. Execution Status
+
+The system observes actual lifecycle state rather than trusting a worker saying “done”.
+
+```text
+UNKNOWN
+ACCEPTED
+RUNNING
+WAITING_APPROVAL
+BLOCKED
+COMPLETED
+FAILED
+INTERRUPTED
+TIMED_OUT
+```
+
+### 5. Evidence Engine
+
+Mechanical validation is collected automatically:
+
+```text
+git diff
+changed files
+tests
+coverage
+lint
+type checks
+build
+migrations
+Docker/service health
+runtime errors
+CI
+PR state
+contract deviations
+```
+
+Target artifact:
+
+```text
+VALIDATION-MANIFEST.md
+```
+
+> **Automate evidence, not judgment.**
+
+### 6. Stage Gate Engine
+
+The engineering methodology itself becomes executable state.
+
+```text
+PLANNED
+  ↓
+ADMITTED
+  ↓
+IMPLEMENTING
+  ↓
+SUBMITTED
+  ↓
+REVIEWING
+  ├── FIX_REQUIRED → IMPLEMENTING
+  ├── BLOCKED
+  └── PASS
+        ↓
+MERGE_AUTHORIZED
+        ↓
+MERGED
+        ↓
+CLOSED
+```
+
+A developer/worker agent may report completion, but it does **not** admit the next stage.
+
+Only the Controller records `PASS / FIX / BLOCK`.
+
+### 7. Repository Control Plane / Git Orchestrator
+
+Git becomes a first-class subsystem instead of a manual chore.
+
+Codex Domination is designed to eventually manage:
+
+```text
+repository inspection
+branch creation / reuse
+worktree lifecycle
+workspace-role binding
+clean-worktree checks
+commit
+push
+PR creation / update
+CI observation
+merge authorization
+merge
+post-merge synchronization
+```
+
+The intended workflow:
+
+```text
+Agent finishes task
+      ↓
+Evidence collected
+      ↓
+Automatic commit / push / PR
+      ↓
+CI
+      ↓
+Controller independent review
+      ↓
+PASS
+      ↓
+Merge Authorization bound to exact PR head SHA
+      ↓
+Automatic merge
+      ↓
+Synchronize main + worktrees
+      ↓
+Next stage
+```
+
+If code changes after approval, the old merge authorization becomes invalid.
+
+**Git mechanics may be automated. Git authority remains explicit.**
+
+### 8. Multi-Project Control
+
+One control plane can eventually govern several real projects.
+
+```text
+FlowTracer
+Codex Domination
+Rasputin
+future projects
+```
+
+Each project may define its own:
+
+```text
+repository
+roles
+runtime bindings
+worktree strategy
+architecture docs
+current version/stage
+task templates
+validation profile
+Git policy
+Controller authority
+```
+
+### 9. MCP / Structured Control Surface
+
+The system is intended to expose a narrow structured interface so an external Controller such as ChatGPT can operate it.
+
+Candidate surface:
+
+```text
+project.list()
+project.get_state()
+role.list()
+role.resolve()
+agent.list()
+agent.read()
+task.dispatch()
+task.status()
+task.interrupt()
+evidence.collect()
+stage.get()
+stage.review()
+repo.get_state()
+repo.open_pr()
+repo.get_ci()
+repo.merge_authorized()
+```
+
+No unrestricted shell is exposed merely for convenience.
+
+---
+
+## Codex + Hermes / Codex 与 Hermes 如何整合
+
+Codex Domination does not try to merge Codex and Hermes into one giant agent implementation.
+
+Instead, both plug into one governance system:
+
+```text
+                         Controller
+                             │
+                        Stage Gate
+                             │
+                      Role Resolution
+                             │
+                  ┌──────────┴──────────┐
+                  ▼                     ▼
+            Backend Role         Research Role
+             CodexRuntime         HermesRuntime
+                  │                     │
+                  └──────────┬──────────┘
+                             ▼
+                       Evidence Engine
+                             │
+                     Repository Control
+                             │
+                          PR / CI
+                             │
+                    Controller Review
+```
+
+Example project profile:
 
 ```yaml
-task: BE-4
-status: completed
-changed_files: 11
-tests: 82 passed
-branch: feat/be-4
-needs_controller_review: true
+roles:
+  research:
+    runtime: hermes
+    agent: research-01
+
+  backend:
+    runtime: codex
+    agent: codex-thread-backend
+
+  frontend:
+    runtime: codex
+    agent: codex-thread-frontend
+
+  security-review:
+    runtime: hermes
+    agent: security-review-01
+
+  integration:
+    runtime: codex
+    agent: codex-thread-integration
 ```
 
-### 4. Controller-first governance / 总控优先治理
+Hermes is a **planned integration**, not a currently implemented dependency. Before implementation, its supported integration surface must pass a dedicated research/ADR gate.
 
-Codex Domination is **not** intended to remove the controller. Mechanical evidence can be automated; independent reasoning and review should remain explicit.
+Hermes 是**计划整合项**，不是当前已经实现的依赖。真正接入之前必须先完成独立的集成面研究和 ADR 冻结。
 
-Codex Domination **不是**为了消灭总控。机械证据可以自动化，但独立推理、复核与准入决策仍应被明确保留。
+---
 
-A target stage-gate loop:
+## The ideal experience / 理想体验
 
-目标 Stage Gate 流程：
+The long-term user experience should be extremely simple.
 
 ```text
-Controller admits stage
-        ↓
-Developer agent executes
-        ↓
-Bridge collects evidence
-        ↓
-Controller reviews risk + diff + validation
-        ↓
-PASS / FIX / BLOCK
-        ↓
-Merge / next stage
+You:
+FlowTracer, continue.
+
+Controller:
+Current stage: BE-7.
+Backend role resolved to CodexRuntime.
+Frozen contract loaded.
+Worktree prepared.
+Task dispatched.
+Implementation completed.
+82 tests passed.
+CI passed.
+1 P2 issue found during independent review.
+Repair task returned to Backend.
+Second validation passed.
+Awaiting final merge authorization.
 ```
 
-## Architecture direction / 架构方向
-
-The preferred direction is a proper execution-layer integration rather than screen automation:
-
-优先路线是执行层集成，而不是屏幕自动化：
+The user thinks in:
 
 ```text
-Codex App Server / Codex SDK / supported hooks
-                    │
-                    ▼
-            Codex Domination Bridge
-                    │
-        ┌───────────┼───────────┐
-        ▼           ▼           ▼
-       MCP       Event Store   Validation
-                    │
-                    ▼
-                Controller
+project
+architecture
+stage
+risk
+decision
 ```
 
-Potential internal modules:
-
-潜在内部模块：
+—not in:
 
 ```text
-src/
-├── app_server_client.*
-├── thread_manager.*
-├── task_dispatcher.*
-├── event_store.*
-├── status_watcher.*
-└── mcp_server.*
+thread switching
+copy/paste
+git branch
+git worktree
+git commit
+git push
+PR boilerplate
+repeated status checks
 ```
 
-Implementation language and protocol details will be selected only after validating the current Codex integration surface.
+---
 
-具体实现语言与协议细节将在验证当前 Codex 可用集成接口后再冻结。
+## Roadmap / v0.1 → v1.1
 
-## Non-goals for v0.1 / v0.1 明确不做
+| Version | Target |
+|---|---|
+| **v0.1** | Codex persistent-thread discovery foundation |
+| **v0.2** | structured thread/context read |
+| **v0.3** | resume / persistent attachment |
+| **v0.4** | bounded task dispatch |
+| **v0.5** | normalized execution status |
+| **v0.6** | evidence / validation manifests |
+| **v0.7** | role registry + project bindings |
+| **v0.8** | executable Stage Gate methodology |
+| **v0.9** | minimal MCP control surface |
+| **v1.0** | complete Codex-first engineering control plane |
+| **v1.1** | workflow automation + Repository Control + multi-runtime expansion + Hermes integration path |
 
-To keep the first release fast and defensible, v0.1 will **not** attempt to build:
+The project remains **Codex-first** during implementation. Multi-runtime support expands a proven system; it does not delay the first reliable product proof.
 
-为了让首版足够快、足够清晰，v0.1 **不会**尝试构建：
+---
 
-- a full DevOS / 完整 DevOS
-- a large graphical dashboard / 大型图形化控制台
-- Obsidian or knowledge-base integration / Obsidian 或知识库集成
-- GitHub PR orchestration / GitHub PR 全自动编排
-- autonomous merge decisions / 自主合并决策
-- general-purpose multi-model agent framework / 通用多模型 Agent 框架
-- UI scraping as the primary architecture / 以 UI 抓取作为核心架构
+## Failure model / 故障模型
 
-## Roadmap / 路线图
+Real implementation failures are classified before architecture is changed.
 
-### v0.1 — Bridge
-- [ ] Validate the supported Codex integration surface / 验证 Codex 可用集成接口
-- [ ] List persistent threads / 列出持久化对话
-- [ ] Read a selected thread / 读取指定对话
-- [ ] Send a task to a selected thread / 向指定对话派发任务
-- [ ] Observe task status / 获取任务状态
-- [ ] Provide a minimal MCP-compatible control surface / 提供最小 MCP 控制面
+### F1 — Implementation defect
 
-### v0.2 — Evidence
-- [ ] Structured task events / 结构化任务事件
-- [ ] Diff and validation evidence / Diff 与验证证据
-- [ ] Machine-generated handoff manifest / 自动生成交接清单
-- [ ] Token/context reduction experiments / Token 与上下文节省实验
+Fix inside the current stage.
 
-### v0.3 — Orchestration
-- [ ] Controller-driven stage gates / 总控驱动 Stage Gate
-- [ ] Role routing / 角色路由
-- [ ] Failure/retry semantics / 失败与重试语义
-- [ ] Multi-project coordination experiments / 多项目协调实验
+### F2 — Runtime / compatibility defect
 
-See [`ROADMAP.md`](./ROADMAP.md) for the project boundary and milestone definitions.
+Fix the Codex/Hermes/runtime adapter or compatibility layer.
 
-完整项目边界和里程碑定义见 [`ROADMAP.md`](./ROADMAP.md)。
+### F3 — Contract defect
+
+Controller updates the affected technical contract before work continues.
+
+### F4 — Architecture invalidated
+
+Stop the stage, issue an ADR, change the architecture explicitly, then resume.
+
+This lets the project model the ideal successful workflow first without pretending real implementation will be bug-free.
+
+---
 
 ## Project principles / 项目原则
 
-1. **Persistent agents over disposable prompts.** / 优先长期 Agent，而不是一次性 Prompt。
-2. **Structured state over repeated summaries.** / 优先结构化状态，而不是重复总结。
-3. **Automate evidence, not judgment.** / 自动化证据，不自动化判断。
-4. **Controller remains the final gate.** / 总控保留最终准入权。
-5. **Small surface before large platform.** / 先做小而稳的接口，再谈大平台。
-6. **No UI scraping unless there is no supported integration path.** / 除非没有受支持的集成路径，否则不依赖 UI 抓取。
+1. **Controller first.** / 总控优先。
+2. **Codex-first, not Codex-only.** / Codex 优先，但不锁死 Codex。
+3. **Persistent agents over disposable prompts.** / 优先长期 Agent。
+4. **Roles over anonymous conversations.** / 用工程角色管理 Agent。
+5. **Bounded tasks over vague autonomy.** / 任务必须有边界。
+6. **Structured state over repeated summaries.** / 优先结构化状态。
+7. **Automate evidence, not judgment.** / 自动化证据，不自动化判断。
+8. **Automate Git mechanics, preserve Git authority.** / 自动化 Git 操作，保留 Git 授权。
+9. **Exact targeting for control-critical actions.** / 控制关键操作必须精确定位。
+10. **Architecture changes require explicit decisions.** / 架构变化必须留下明确决策。
 
-## Status / 当前状态
+---
 
-**Project definition / Pre-alpha.** No production-ready implementation exists yet.
+## Documentation / 技术文档
 
-**项目定义阶段 / Pre-alpha。** 当前尚无可用于生产环境的实现。
+The architecture is documented before heavy implementation so Codex can later execute bounded work packages rather than redesigning the system during coding.
 
-The immediate objective is to prove one end-to-end loop:
+Key documents:
 
-当前唯一最高优先级，是证明一个完整闭环：
+- [`docs/00-PROJECT-CONTROL.md`](./docs/00-PROJECT-CONTROL.md) — governance baseline
+- [`docs/02-R0-INTEGRATION-DECISION.md`](./docs/02-R0-INTEGRATION-DECISION.md) — official Codex integration decision
+- [`docs/10-MASTER-TECHNICAL-DESIGN.md`](./docs/10-MASTER-TECHNICAL-DESIGN.md) — master technical baseline
+- [`docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md`](./docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md) — staged roadmap
+- [`docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md`](./docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md) — repository control architecture
+- [`docs/14-AI-ENGINEERING-OS-ARCHITECTURE.md`](./docs/14-AI-ENGINEERING-OS-ARCHITECTURE.md) — unified Codex + Hermes + Git + Stage Gate target architecture
+
+Documentation authority remains explicit; stage implementation must not silently contradict frozen architecture.
+
+---
+
+## Current status / 当前状态
+
+**Pre-alpha / architecture-first implementation.**
+
+Current practical priority:
 
 ```text
-Controller
-  → discover Codex thread
-  → read thread
-  → dispatch task
-  → observe completion
-  → receive structured evidence
+Codex v0.1
+→ discover real persistent threads
+→ validate on a real local Codex environment
+→ Controller gate
+→ continue to read / resume / dispatch / status
 ```
 
-Once that loop works reliably, the project can grow from a bridge into a true Codex orchestration layer.
+Hermes, Repository Control and broader AI Engineering OS capabilities are part of the documented target architecture, but they do not bypass the stage-gated Codex foundation.
 
-只有当这条链路稳定成立之后，项目才会从“桥”继续成长为真正的 Codex 编排层。
+---
 
-## License / 许可证
+## Long-term positioning / 长期定位
+
+Short version:
+
+> **Operating system for AI software engineering teams.**
+
+More precise:
+
+> **Codex-first, multi-runtime engineering governance: persistent agents, bounded tasks, evidence, stage gates, Git control and explicit human authority.**
+
+中文：
+
+> **Codex Domination 是一套以总控为核心的 AI 软件工程操作系统：Codex 优先、可扩展 Hermes 等 Agent Runtime，用角色、任务契约、Stage Gate、证据与 Git 控制，把 AI Agent 组织成真正的软件工程团队。**
+
+---
+
+## License
 
 MIT License. See [`LICENSE`](./LICENSE).
