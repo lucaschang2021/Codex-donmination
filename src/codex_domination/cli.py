@@ -7,12 +7,19 @@ import sys
 from .discovery import ThreadDiscoveryService
 
 
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be >= 1")
+    return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="codex-domination")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     threads = subparsers.add_parser("threads", help="List persistent Codex threads")
-    threads.add_argument("--limit", type=int, default=None)
+    threads.add_argument("--limit", type=_positive_int, default=None)
     threads.add_argument("--json", action="store_true", dest="as_json")
     return parser
 
