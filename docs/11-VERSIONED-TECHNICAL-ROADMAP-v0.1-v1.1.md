@@ -116,20 +116,23 @@ implementation
 │ Evidence Collector                            │
 │ Stage/Policy Engine                           │
 │ Audit Store                                   │
+│ Repository Control Plane / Git Orchestrator   │
 └───────────────────────┬───────────────────────┘
                         │
                         ▼
 ┌───────────────────────────────────────────────┐
-│ Runtime Adapter                               │
-│ official openai-codex SDK / Codex App Server  │
+│ Runtime + Repository Adapters                 │
+│ Codex SDK/App Server + Git/GitHub/CI          │
 └───────────────────────┬───────────────────────┘
                         │
                         ▼
 ┌───────────────────────────────────────────────┐
-│ Persistent Codex Threads                      │
+│ Persistent Codex Threads + Project Repos      │
 │ Backend / Frontend / Integration / Release... │
 └───────────────────────────────────────────────┘
 ```
+
+Repository control is first-class in the final system. Detailed repository architecture is defined in `docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md`.
 
 ---
 
@@ -200,36 +203,15 @@ Controller can select one discovered thread and read its persisted history/state
 - pagination/history handling
 - deterministic missing-thread errors
 
-### Data flow
-
-```text
-list_threads
-   ↓ select thread_id
-read_thread(thread_id)
-   ↓
-Thread Reader
-   ↓
-official thread/read
-   ↓
-normalized events/history
-```
-
 ### Core primitives
 
 - `read_thread(thread_id, include_turns=True)`
 - optional recent-event slicing
 - stable event ordering
 
-### Required design decisions
-
-- persisted history versus live events
-- truncation policy
-- unknown/new upstream event handling
-- sensitive payload redaction boundary
-
 ### Exit gate
 
-Controller can discover at least two threads and inspect one selected thread's recent structured history without using the Codex UI.
+Controller can inspect one selected persistent thread's recent structured history without using the Codex UI.
 
 ---
 
@@ -249,20 +231,6 @@ Codex Domination can re-attach to an existing persistent thread safely when live
 
 - `resume_thread(thread_id)`
 - `get_attachment_state(thread_id)`
-
-### Invariants
-
-- `thread/read` is not treated as a live subscription
-- resume is explicit
-- active/running thread semantics are surfaced rather than hidden
-
-### Failure modes to handle
-
-- missing rollout/history
-- stale ID
-- already-running thread
-- runtime restart
-- SDK/runtime version mismatch
 
 ### Exit gate
 
@@ -288,25 +256,9 @@ Controller can send one explicit bounded task to one specific persistent Codex t
 
 - `send_task(thread_id, prompt, metadata=None)`
 
-### Dispatch contract
-
-Every dispatch must include:
-
-- concrete target thread ID
-- task text
-- caller/controller identity where available
-- generated dispatch ID
-- timestamp
-- explicit acknowledgement/receipt
-
 ### Hard exclusions
 
-No hidden:
-
-- repository merge
-- release action
-- permission escalation
-- multi-thread fanout
+No hidden repository merge, release action, permission escalation, or multi-thread fanout.
 
 ### Exit gate
 
@@ -342,8 +294,6 @@ RUNNING
   └── TIMED_OUT
 ```
 
-Upstream-native states may be richer, but the Controller-facing state model remains intentionally narrow.
-
 ### Exit gate
 
 The full v0.x control loop becomes real:
@@ -351,8 +301,6 @@ The full v0.x control loop becomes real:
 ```text
 discover → read → resume/attach → dispatch → status → terminal result
 ```
-
-No manual Codex window switching is required for this loop.
 
 ---
 
@@ -368,11 +316,14 @@ Instead of only reporting “done”, Codex Domination collects mechanical evide
 - evidence manifest schema
 - execution/result correlation
 - artifact references
+- **read-only repository evidence** via Git Orchestrator G0
 
 ### Candidate evidence
 
+- `git status` summary
 - changed-file summary
 - diff metadata
+- base/head SHAs
 - test commands and outcomes
 - lint/type-check outcomes
 - runtime/app-server errors
@@ -386,7 +337,7 @@ Evidence is automated; judgment is not.
 
 ### Exit gate
 
-Controller receives a compact structured evidence bundle for each completed bounded task.
+Controller receives a compact structured evidence bundle for each completed bounded task, including repository state.
 
 ---
 
@@ -401,7 +352,8 @@ Persistent threads can be mapped to stable engineering roles instead of being tr
 - Role Registry
 - aliases / role metadata
 - explicit thread-role binding
-- optional project binding
+- project binding
+- **repository / branch / worktree binding**
 
 ### Candidate roles
 
@@ -413,19 +365,13 @@ Persistent threads can be mapped to stable engineering roles instead of being tr
 - Research
 - Security Review
 
-### Core primitives
-
-- `bind_role(role, thread_id)`
-- `resolve_role(role)`
-- `list_roles()`
-
 ### Safety
 
-Role aliases are convenience metadata; all control-critical operations still resolve to and display concrete thread IDs.
+Role aliases are convenience metadata; all control-critical operations still resolve to concrete thread IDs and concrete repository/worktree bindings.
 
 ### Exit gate
 
-Controller can address `Backend` or `Integration` while the system still records the exact underlying thread identity.
+Controller can address `Backend` or `Integration` while the system records the exact underlying thread, branch and worktree identity.
 
 ---
 
@@ -433,7 +379,7 @@ Controller can address `Backend` or `Integration` while the system still records
 
 ### Product outcome
 
-The user's controller-first engineering methodology becomes executable policy.
+The controller-first engineering methodology becomes executable policy.
 
 ### Architecture added
 
@@ -443,11 +389,14 @@ The user's controller-first engineering methodology becomes executable policy.
 - evidence requirements
 - PASS/FIX/BLOCK decisions
 - immutable decision records
+- **stage-specific repository policy and workspace admission**
 
 ### Canonical workflow
 
 ```text
 Controller freezes stage
+      ↓
+Repository workspace validated
       ↓
 Role admitted
       ↓
@@ -464,13 +413,9 @@ PASS / FIX / BLOCK
 Next stage admitted or returned for repair
 ```
 
-### Important boundary
-
-The Stage Engine tracks and enforces process state. It does not independently decide architectural quality.
-
 ### Exit gate
 
-One real project stage can be represented end to end with explicit admission and review records.
+One real project stage can be represented end to end with explicit admission, repository state and review records.
 
 ---
 
@@ -497,6 +442,7 @@ An external Controller such as ChatGPT can operate Codex Domination through a na
 - `get_evidence`
 - `list_roles`
 - `get_stage`
+- narrow repository/status primitives where needed
 
 ### Non-goals
 
@@ -528,11 +474,13 @@ Stage Gate Engine
   ↓
 Role Registry
   ↓
-Thread Registry / Reader / Dispatcher / Status / Evidence
+Thread + Task + Status + Evidence Core
   ↓
-Official Codex Runtime Adapter
+Repository Control Plane / Git Orchestrator
   ↓
-Persistent Codex engineering roles
+Official Codex Runtime + Git/GitHub/CI
+  ↓
+Persistent Codex engineering roles + project worktrees
 ```
 
 ### v1.0 expected workflow
@@ -540,14 +488,15 @@ Persistent Codex engineering roles
 ```text
 1. Controller selects project/stage
 2. Stage Engine confirms admission criteria
-3. Role Registry resolves Backend thread
-4. Controller reads recent context
-5. bounded task is dispatched
-6. Status Watcher tracks execution
-7. Evidence Collector builds manifest
-8. Controller independently reviews
-9. Controller records PASS/FIX/BLOCK
-10. only PASS admits next stage
+3. Git Orchestrator validates repository/worktree state
+4. Role Registry resolves Backend thread + workspace
+5. Controller reads recent context
+6. bounded task is dispatched
+7. Status Watcher tracks execution
+8. Evidence Collector builds manifest including Git state
+9. Controller independently reviews
+10. Controller records PASS/FIX/BLOCK
+11. only PASS admits next stage
 ```
 
 ### v1.0 Definition of Done
@@ -559,6 +508,7 @@ Persistent Codex engineering roles
 - deterministic status
 - evidence bundle
 - role mapping
+- branch/worktree-aware workspace validation
 - stage gates
 - MCP interface
 - audit records
@@ -575,11 +525,11 @@ Persistent Codex engineering roles
 
 ---
 
-## v1.1 — Workflow Automation & Efficiency Layer / 工作流自动化与效率层
+## v1.1 — Workflow + Git Automation / 工作流与 Git 自动化层
 
 ### Product outcome
 
-After the v1.0 control plane is proven, Codex Domination begins automating the repetitive mechanics surrounding the Controller's methodology without removing Controller authority.
+After the v1.0 control plane is proven, Codex Domination automates the repetitive mechanics surrounding the Controller's methodology — including ordinary Git/GitHub operations — without removing Controller authority.
 
 ### Architecture added
 
@@ -591,6 +541,38 @@ After the v1.0 control plane is proven, Codex Domination begins automating the r
 - lightweight project profiles
 - cross-role handoff packets
 - metrics/telemetry for workflow efficiency
+- **Git Orchestrator G1–G4 automation**
+
+### Git automation scope
+
+Codex Domination may automatically:
+
+- create/reuse stage branches
+- create/reuse role worktrees
+- verify correct workspace before dispatch
+- inspect changes
+- prepare validated commits
+- push feature branches
+- create/update PRs
+- watch CI
+- collect review/CI evidence
+- execute a merge **only after explicit Controller authorization bound to the exact current head SHA**
+- synchronize main/worktrees after merge
+
+### Critical invariant
+
+```text
+Tests PASS ≠ Merge Authorization
+CI PASS ≠ Merge Authorization
+Worker says DONE ≠ Merge Authorization
+PR mergeable ≠ Merge Authorization
+
+Only:
+Controller PASS
++ explicit MergeAuthorization
++ matching authorized head SHA
+→ Git Orchestrator may execute merge
+```
 
 ### Example experience
 
@@ -600,45 +582,60 @@ Controller issues:
 Admit BE-4 for FlowTracer.
 ```
 
-Codex Domination can then prepare, but not silently approve:
+Codex Domination can then:
 
 ```text
 - resolve Backend role → exact thread ID
+- validate/create Backend branch + worktree
 - load frozen BE-4 task contract
 - package bounded context
 - dispatch implementation task
 - watch execution
-- collect tests/diff/evidence
+- collect tests/diff/repository evidence
+- prepare commit + push branch
+- open/update PR
+- watch CI
 - present Controller review packet
 - wait for PASS/FIX/BLOCK
 ```
 
-### Efficiency metrics
+If FIX:
 
-- manual relay steps avoided
-- average Controller-to-worker round trips
-- task completion latency
-- repair-loop count
-- evidence completeness
-- failed/mis-targeted dispatch rate
-- Controller context size saved
+```text
+- create bounded repair packet
+- return it to the same worker
+- collect new evidence
+- update commit/PR/CI state
+- present Controller re-review packet
+```
+
+If PASS:
+
+```text
+- Controller issues merge authorization
+- authorization is bound to exact PR head SHA
+- Git Orchestrator executes authorized merge
+- syncs repository/worktrees
+- archives stage evidence
+- Stage Engine admits next stage
+```
 
 ### Key methodological outcome
 
-At v1.1, Codex Domination is no longer only a bridge. It is an executable representation of a controller-first AI software engineering methodology.
+At v1.1, Codex Domination is no longer merely a bridge. It is an executable representation of a controller-first AI software engineering methodology in which both Codex coordination and repository choreography are automated.
 
-It automates the workflow around judgment while deliberately preserving the judgment itself.
+The human thinks in **project → stage → role → evidence → decision** rather than thread windows, branch commands, worktree commands and PR mechanics.
 
 ---
 
 # 5. Happy-Path Simulation / 理想顺利路径模拟
 
-This section models the intended future system assuming each stage works as designed.
-
 ```text
 Human defines product requirement
         ↓
 Controller freezes architecture + stage contract
+        ↓
+Git Orchestrator prepares/validates workspace
         ↓
 Codex Domination resolves role/thread
         ↓
@@ -646,181 +643,118 @@ Context package generated
         ↓
 Bounded task dispatched to persistent Codex worker
         ↓
-Worker executes inside declared permission boundary
+Worker executes inside declared permission + worktree boundary
         ↓
 Status events normalized
         ↓
-Mechanical validation/evidence collected
+Mechanical validation + Git evidence collected
+        ↓
+Commit / push / PR / CI mechanics automated by policy
         ↓
 Controller receives review packet
         ↓
-PASS ─────────────→ next stage admitted
-FIX  ─────────────→ bounded repair task sent back
+PASS ─────────────→ explicit merge authorization → Git Orchestrator merge → next stage
+FIX  ─────────────→ bounded repair task → new evidence → re-review
 BLOCK─────────────→ architecture/contract decision required
 ```
 
-The default failure strategy is local repair:
-
-```text
-runtime failure
-  → classify
-  → preserve frozen contract
-  → issue bounded repair
-  → rerun validation
-  → Controller re-review
-```
-
-Architecture is revised only when evidence shows the frozen assumption itself is invalid.
+The default failure strategy remains local repair. Architecture is revised only when evidence shows the frozen assumption itself is invalid.
 
 ---
 
 # 6. Failure Taxonomy / 故障分类
 
-Failures discovered during Codex implementation should be classified before changing design.
-
 ## F1 — Implementation defect
 
-Examples:
-- parsing bug
-- invalid boundary validation
-- wrong field mapping
-- missing test
+Parsing bugs, validation mistakes, wrong field mappings, missing tests. Fix in current implementation stage.
 
-Action: fix in current implementation stage.
+## F2 — Runtime/repository compatibility defect
 
-## F2 — Runtime compatibility defect
-
-Examples:
-- SDK version drift
-- Windows-specific launch behavior
-- App Server lifecycle issue
-
-Action: fix Runtime Adapter or compatibility layer; preserve higher-level contracts where possible.
+SDK drift, Windows launch behavior, Git/worktree/provider differences. Fix adapter/compatibility layer while preserving higher-level contracts where possible.
 
 ## F3 — Contract defect
 
-Examples:
-- ambiguous status semantics
-- unsafe retry behavior
-- non-deterministic target selection
-
-Action: Controller updates the affected technical contract/ADR before implementation continues.
+Ambiguous status semantics, unsafe retry behavior, non-deterministic routing, unsafe merge semantics. Controller updates the affected technical contract/ADR before implementation continues.
 
 ## F4 — Architectural invalidation
 
-Example:
-- an official supported primitive fundamentally cannot provide the required capability.
-
-Action: stop the stage, open an ADR, revise the architecture explicitly. Never silently patch around it.
+A supported primitive fundamentally cannot provide the required capability. Stop the stage, open an ADR, revise architecture explicitly.
 
 ---
 
-# 7. Codex Implementation Protocol / Codex 施工协议
+# 7. Documentation Authority / 文档权威层级
 
-Once Codex quota is available, each implementation stage should be dispatched with the same compact contract.
-
-## Task packet
-
-Every task contains:
-
-- stage/version
-- objective
-- frozen scope
-- explicit non-goals
-- relevant architecture docs
-- files/modules allowed to change
-- acceptance criteria
-- required tests
-- required report format
-
-## Developer report
-
-Codex reports:
+When implementation begins, Codex should resolve conflicts in this order:
 
 ```text
-Stage:
-Status:
-Changed files/modules:
-Implemented contract:
-Tests/validation:
-Known deviations:
-Risks:
-Needs Controller decision:
-Evidence manifest:
+1. docs/00-PROJECT-CONTROL.md
+2. docs/10-MASTER-TECHNICAL-DESIGN.md
+3. docs/11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md
+4. docs/12-GIT-ORCHESTRATOR-ARCHITECTURE.md
+5. accepted ADR / integration decision
+6. stage-specific technical design
+7. task packet
+8. implementation comments
 ```
 
-## Controller review
-
-Controller independently checks:
-
-- contract compliance
-- hidden scope expansion
-- security/permission changes
-- failure semantics
-- tests and evidence
-- upstream compatibility assumptions
-
-The worker never self-admits the next stage.
+Architecture changes move upward through explicit review rather than being silently introduced in code.
 
 ---
 
-# 8. Documentation Hierarchy / 文档层级
+# 8. Codex Task Packet Contract / Codex 施工任务包
 
-The repository documentation should follow this authority order:
+Every future implementation task should contain:
 
 ```text
-00-PROJECT-CONTROL.md
-        ↓
-10-MASTER-TECHNICAL-DESIGN.md
-        ↓
-11-VERSIONED-TECHNICAL-ROADMAP-v0.1-v1.1.md
-        ↓
-ADR / integration decisions
-        ↓
-version/stage technical design
-        ↓
-implementation + tests
-        ↓
-validation / Controller admission record
+Version / Stage
+Objective
+Frozen Scope
+Non-goals
+Allowed Modules / Files
+Repository / Branch / Worktree Binding
+Required Interfaces
+Acceptance Criteria
+Required Tests
+Evidence Required
+Forbidden Actions
+Developer Report Format
 ```
 
-When documents conflict, the higher-level frozen authority wins until explicitly amended.
+Developer reports completion; Controller decides admission.
 
 ---
 
-# 9. Version Completion Record / 版本完成记录
-
-Each version should eventually gain a small completion record containing:
-
-- implementation commit/PR
-- tests and CI result
-- real-environment validation result
-- known limitations
-- Controller verdict
-- exact next version admitted
-
-This turns the repository history into an auditable record of how the architecture became real.
-
----
-
-# 10. Final Direction / 最终方向
-
-The intended evolution is:
+# 9. Final v1.1 Product Shape / 最终形态
 
 ```text
-v0.1  discover
-v0.2  read
-v0.3  resume
-v0.4  dispatch
-v0.5  status
-v0.6  evidence
-v0.7  roles
-v0.8  stage gates
-v0.9  MCP
-v1.0  complete controller-first control plane
-v1.1  workflow automation + methodology productization
+User / Controller
+      │
+      │ "Continue FlowTracer"
+      ▼
+Codex Domination
+      │
+      ├─ knows project
+      ├─ knows current stage
+      ├─ knows role/thread
+      ├─ knows repo/branch/worktree
+      ├─ prepares task
+      ├─ dispatches Codex
+      ├─ observes status
+      ├─ gathers tests + Git evidence
+      ├─ commits/pushes/opens PR by policy
+      ├─ watches CI
+      ├─ routes FIX loops
+      └─ waits for Controller merge authorization
+              │
+              ▼
+        authorized merge
+              │
+              ▼
+          next stage
 ```
 
-If every version succeeds, Codex Domination becomes the layer that manages the AI engineering organization itself:
+The user should no longer manually manage Codex windows **or routine Git choreography**.
 
-> IDE manages code. GitHub manages versions. Codex performs work. Codex Domination manages the controlled multi-agent engineering process.
+The final product thesis becomes:
+
+> Codex Domination is the control plane for an AI software engineering organization: it coordinates persistent Codex workers, enforces the engineering method, manages repository mechanics, collects evidence, and preserves explicit human/Controller authority at the decisions that matter.
