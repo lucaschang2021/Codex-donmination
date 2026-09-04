@@ -6,16 +6,38 @@ The architecture reset does not authorize broad implementation. The first releas
 
 ## P0 — Architecture Contract MVP
 
-Build first:
+### Implemented baseline
 
-1. contract parser and schema validation;
-2. repository/module scanner;
-3. Python import/dependency graph;
-4. architecture baseline snapshot;
-5. deterministic rule evaluation;
-6. structured PASS/FIX/BLOCK report.
+The self-governed repository baseline now proves an initial slice:
 
-Acceptance proof: run against FinTerminal, FlowTracer, and Gallop and reproduce known architecture findings/preservation rules.
+- TOML Architecture Contract loading;
+- explicit domain / ports / application / infrastructure / adapters / bootstrap boundaries;
+- static Python AST repository scanning without importing target code;
+- import collection;
+- mutable module-global detection for list/dict/set literals;
+- direct top-level call detection;
+- file line-count evidence;
+- deterministic dependency/state/side-effect/complexity rule evaluation;
+- structured PASS/FIX/BLOCK report;
+- thin CLI;
+- dependency injection through ports and a single composition root;
+- isolated tests;
+- CI self Architecture Gate.
+
+This is an implementation baseline, not P0 completion.
+
+### Remaining P0 work
+
+1. explicit contract schema/type validation with deterministic configuration errors;
+2. repository/module graph model rather than a flat import list;
+3. architecture baseline snapshot persistence/serialization;
+4. richer dependency resolution, including relative imports and package ownership;
+5. rule provenance and stable finding identifiers;
+6. baseline-no-regression classification for legacy repositories;
+7. reference-project fixtures/policies for FinTerminal, FlowTracer, and Gallop;
+8. reproducible acceptance runs against those three repositories.
+
+P0 exits only when those acceptance runs reproduce the known architecture findings and preservation rules without executing target application code.
 
 ## P1 — Architecture Diff
 
