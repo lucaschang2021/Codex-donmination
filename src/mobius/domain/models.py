@@ -31,7 +31,10 @@ class ModuleRule:
 
     def owns(self, path: PurePosixPath) -> bool:
         text = path.as_posix()
-        return any(text == prefix or text.startswith(prefix.rstrip("/") + "/") for prefix in self.paths)
+        return any(
+            text == prefix or text.startswith(prefix.rstrip("/") + "/")
+            for prefix in self.paths
+        )
 
 
 @dataclass(frozen=True, slots=True)
