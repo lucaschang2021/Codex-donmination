@@ -1,120 +1,211 @@
-# Codex Domination Roadmap / 路线图
+# Möbius Roadmap
 
-This roadmap intentionally keeps the project narrow until the core control loop is proven.
+Möbius is being developed as an **Architecture & Development Governance Control Plane for AI engineering**.
 
-这份路线图刻意限制项目范围，直到最核心的控制闭环被真正验证。
+The original Codex control bridge remains the first execution proof, but the roadmap is now organized around governed software change rather than persistent-thread control alone.
 
-## Milestone 0 — Integration Research / 集成面验证
+## Phase A — Architecture Contract MVP
 
-Goal: determine the safest supported way to interact with persistent Codex sessions.
+Goal: make architectural intent machine-readable and reviewable before adding broad runtime orchestration.
 
-目标：确认与持久化 Codex 会话交互的最稳妥、受支持方式。
+Required capabilities:
 
-Acceptance criteria / 验收标准:
+- versioned Architecture Contract schema;
+- repository/module discovery;
+- import/dependency graph extraction;
+- module responsibility map;
+- explicit side-effect and mutable-state policy;
+- baseline architecture snapshot;
+- deterministic Architecture Gate report;
+- PASS / FIX / BLOCK result with reproducible evidence.
 
-- Identify supported Codex server/SDK/hook surfaces.
-- Confirm thread discovery and thread identity semantics.
-- Confirm whether historical messages and tool events are readable.
-- Confirm whether tasks can be dispatched to an existing thread.
-- Document authentication, local process and security boundaries.
+Definition of done:
 
-- 明确 Codex Server / SDK / Hook 等可用集成面。
-- 确认 thread 的发现方式和身份语义。
-- 确认历史消息与工具事件是否可读取。
-- 确认是否可以向既有 thread 派发任务。
-- 记录认证、本地进程和安全边界。
+A real repository can declare architectural rules and Möbius can detect at least:
 
-## v0.1 — Control Bridge / 控制桥
+- one forbidden dependency direction;
+- one import-time side effect or unmanaged global state pattern;
+- one complexity-growth warning;
+- one test-isolation regression or missing fake-provider boundary.
 
-Goal: one controller can interact with multiple persistent Codex threads through a minimal structured interface.
+## Phase B — Codex Governed Execution
 
-目标：一个总控能够通过最小结构化接口与多个持久化 Codex thread 交互。
+Goal: preserve the original Codex-first control-loop work while placing it under a Change contract.
 
-Required capabilities / 必须能力:
+Required capabilities:
 
-- `list_threads`
-- `read_thread`
-- `send_task`
-- `watch_status`
-- minimal MCP-facing interface / 最小 MCP 接口
-- explicit errors and timeouts / 明确错误与超时语义
+- discover persistent Codex threads;
+- read structured context;
+- dispatch one bounded Change;
+- observe execution status;
+- bind task execution to a repository/branch/worktree;
+- snapshot the Architecture Contract before execution;
+- capture implementation evidence;
+- run a Plan Gate before dispatch.
 
-Definition of done / 完成定义:
-
-A real end-to-end demo proves:
-
-真实端到端 Demo 必须证明：
+Definition of done:
 
 ```text
 Controller
-  → discovers Backend thread
-  → reads recent context
-  → sends a bounded task
-  → watches execution state
-  → receives completion state
+  -> selects repository + Change objective
+  -> Möbius loads architecture contract
+  -> validates plan
+  -> targets CodexRuntime
+  -> dispatches bounded task
+  -> watches execution
+  -> collects changed-file/test evidence
+  -> produces architecture diff
+  -> returns PASS / FIX / BLOCK for Controller review
 ```
 
-## v0.2 — Evidence Layer / 证据层
+## Phase C — Architecture Diff
 
-Goal: reduce repeated natural-language reporting by extracting machine-readable execution evidence.
+Goal: reason about how repository structure changed, not only which lines changed.
 
-目标：通过自动提取机器可读证据，减少 Agent 反复写自然语言汇报的成本。
+Planned evidence:
 
-Planned capabilities / 计划能力:
+- dependency graph delta;
+- new/removed module edges;
+- cross-layer import changes;
+- interface changes;
+- new environment/filesystem/network/subprocess side effects;
+- mutable-state ownership changes;
+- file/module complexity delta;
+- new framework coupling;
+- loss of isolated unit-testability;
+- failure-isolation regressions.
 
-- changed-file summary / 变更文件摘要
-- diff metadata / diff 元数据
-- test/validation result ingestion / 测试与验证结果收集
-- task completion manifest / 任务完成清单
-- token/context usage experiments / token 与上下文消耗实验
-- event persistence / 事件持久化
+The Architecture Diff must separate:
 
-Example manifest / 示例：
+- observed facts;
+- policy violations;
+- advisory warnings;
+- final authority decisions.
 
-```yaml
-role: backend
-stage: BE-4
-status: completed
-changed_files: 11
-tests:
-  passed: 82
-controller_review_required: true
+## Phase D — Repository Governance
+
+Goal: make Git and PR state first-class governed objects.
+
+Planned capabilities:
+
+- branch/worktree lifecycle;
+- role/runtime-to-workspace binding;
+- commit/push;
+- PR creation/update;
+- CI observation;
+- reviewed-head SHA binding;
+- merge authorization;
+- authorization invalidation when the reviewed head changes;
+- post-merge synchronization.
+
+Mechanical Git actions may be automated. Merge/release authority must remain explicit policy/Controller decisions.
+
+## Phase E — Multi-runtime Expansion
+
+Goal: prove that the governance model is runtime-independent.
+
+Planned adapters:
+
+- Claude Code;
+- Astra;
+- Hermes;
+- future engineering runtimes.
+
+Required design:
+
+```text
+EngineeringRuntime
+  discover()
+  read_context()
+  dispatch(change_contract)
+  observe()
+  interrupt()
+  collect_result()
+  capabilities()
 ```
 
-## v0.3 — Controller Orchestration / 总控编排
+Multi-agent orchestration remains a pluggable execution strategy, not the product definition.
 
-Goal: encode a rigorous controller-first stage-gate workflow without removing human or controller judgment.
+## Phase F — Knowledge & Architecture Memory
 
-目标：把严格的“总控优先 + Stage Gate”流程编码进系统，但不移除人工与总控判断。
+Goal: retain engineering knowledge without making human notes the hidden source of truth.
 
-Planned capabilities / 计划能力:
+Planned capabilities:
 
-- role registry / 角色注册
-- stage admission / 阶段准入
-- controller dispatch / 总控派发
-- task rejection and rework / 驳回与返工
-- retry and failure semantics / 重试与失败语义
-- multi-project experiments / 多项目实验
+- ADR extraction;
+- Architecture Contract history;
+- architecture-debt ledger;
+- repeated failure-pattern memory;
+- runtime compatibility findings;
+- project/stage/change records;
+- Obsidian-compatible one-way projection.
 
-## Later — Only if justified / 后续：只有必要时才做
+Any future bidirectional knowledge mode requires explicit provenance and conflict-resolution rules.
 
-These are intentionally outside the early roadmap:
+## Reference-project hardening
 
-以下内容刻意不进入早期路线图：
+Möbius development should continuously test governance against real project patterns.
 
-- graphical control center / 图形化控制中心
-- GitHub orchestration / GitHub 自动编排
-- knowledge-base or Obsidian integration / 知识库或 Obsidian 集成
-- cross-model orchestration / 跨模型编排
-- cloud-hosted team service / 云端团队服务
-- autonomous release authority / 自主发布权限
+### FinTerminal
 
-They should be added only when real usage proves they reduce meaningful friction.
+Target detections:
 
-只有当真实使用证明这些能力能显著降低摩擦时，才应加入。
+- adapter -> entrypoint/business-kernel coupling;
+- import-time plugin loading;
+- module-global runtime state;
+- hidden initialization-order requirements;
+- core logic that cannot be isolated from transport/runtime startup.
 
-## Design rule / 设计铁律
+### FlowTracer
 
-> Automate evidence, transport and repetition. Preserve judgment, review and explicit authority.
->
-> 自动化证据、传输与重复劳动；保留判断、复核与明确授权。
+Target preservation rules:
+
+- bootstrap-only application entrypoint;
+- explicit dependency injection;
+- provider abstraction and fake providers;
+- service boundary integrity;
+- early warning for acquisition/intelligence God-service growth.
+
+### Gallop
+
+Target preservation rules:
+
+- deterministic evidence/progression engines;
+- event-journal authority;
+- orchestration service remains orchestration-only;
+- Progressive Mentorship logic stays in dedicated deterministic modules;
+- provider output never directly becomes mastery authority.
+
+## Version sequence
+
+The exact version numbers may change as implementation evidence arrives, but the intended sequence is:
+
+| Version | Primary proof |
+|---|---|
+| **v0.1** | Architecture Contract + repository scanner + baseline Architecture Gate |
+| **v0.2** | Codex governed Change loop |
+| **v0.3** | Architecture Diff + structured findings |
+| **v0.4** | Repository/worktree/PR governance |
+| **v0.5** | CI + exact-SHA review/merge authorization |
+| **v0.6** | Multi-runtime adapter boundary |
+| **v0.7** | Claude Code / Astra / Hermes experiments |
+| **v0.8** | Architecture memory / ADR / debt ledger |
+| **v0.9** | MCP/API control surface for external controllers |
+| **v1.0** | Stable architecture-governed AI engineering control plane |
+
+## Non-goals for early versions
+
+Early versions MUST NOT become:
+
+- a generic autonomous software factory;
+- a benchmark for which model is “smartest”;
+- an unrestricted agent swarm;
+- a replacement for Git, CI, test frameworks, or IDEs;
+- an automatic authority system that silently weakens architecture or security rules;
+- a universal clean-architecture enforcer.
+
+Möbius governs the architecture a project deliberately declares.
+
+## Design rule
+
+> **Govern change, not intelligence. Automate evidence and mechanics. Preserve architecture, judgment, review, and explicit authority.**
