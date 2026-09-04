@@ -1,0 +1,70 @@
+schema_version = 1
+project = "Mobius"
+architecture_version = 1
+
+[[modules]]
+name = "domain"
+paths = ["src/mobius/domain"]
+responsibility = "deterministic architecture-governance models and rules"
+may_depend_on = []
+forbidden_import_prefixes = ["mobius.application", "mobius.infrastructure", "mobius.adapters", "mobius.bootstrap"]
+side_effects = "forbidden"
+
+[[modules]]
+name = "ports"
+paths = ["src/mobius/ports"]
+responsibility = "abstract boundaries owned by the application/domain side"
+may_depend_on = ["domain"]
+forbidden_import_prefixes = ["mobius.infrastructure", "mobius.adapters", "mobius.bootstrap"]
+side_effects = "forbidden"
+
+[[modules]]
+name = "application"
+paths = ["src/mobius/application"]
+responsibility = "orchestration of governed changes and gate execution"
+may_depend_on = ["domain", "ports"]
+forbidden_import_prefixes = ["mobius.infrastructure", "mobius.adapters", "mobius.bootstrap"]
+side_effects = "forbidden"
+
+[[modules]]
+name = "infrastructure"
+paths = ["src/mobius/infrastructure"]
+responsibility = "filesystem, repository scanning, persistence and external integrations"
+may_depend_on = ["domain", "ports"]
+forbidden_import_prefixes = ["mobius.adapters"]
+side_effects = "explicit-runtime-only"
+
+[[modules]]
+name = "adapters"
+paths = ["src/mobius/adapters"]
+responsibility = "CLI/API/MCP transport adapters"
+may_depend_on = ["application", "domain"]
+forbidden_import_prefixes = ["mobius.infrastructure"]
+side_effects = "entrypoint-only"
+
+[[modules]]
+name = "bootstrap"
+paths = ["src/mobius/bootstrap.py"]
+responsibility = "single composition root and dependency wiring"
+may_depend_on = ["application", "domain", "ports", "infrastructure", "adapters"]
+forbidden_import_prefixes = []
+side_effects = "explicit-runtime-only"
+
+[constraints]
+forbid_module_mutable_state = true
+forbid_import_time_calls = true
+max_file_lines_soft = 500
+max_file_lines_hard = 900
+core_requires_isolated_unit_tests = true
+fake_external_providers_required = true
+architecture_gate_required = true
+
+[authority]
+contract_changes_require_review = true
+architecture_exceptions_require_adr = true
+merge_authorization_requires_exact_sha = true
+runtime_may_waive_findings = false
+
+[legacy]
+policy = "baseline-no-regression"
+classify_findings = ["existing", "introduced", "resolved"]
