@@ -55,14 +55,17 @@ def _mutable_globals(tree: ast.Module) -> tuple[str, ...]:
     return tuple(sorted(names))
 
 
+def _direct_top_level_call(node: ast.stmt) -> ast.Call | None:
+    if not isinstance(node, (ast.Expr, ast.Assign, ast.AnnAssign)):
+        return None
+    value = node.value
+    return value if isinstance(value, ast.Call) else None
+
+
 def _top_level_calls(tree: ast.Module) -> tuple[str, ...]:
     calls: set[str] = set()
     for node in tree.body:
-        candidate: ast.Call | None = None
-        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-            candidate = node.value
-        elif isinstance(node, (ast.Assign, ast.AnnAssign)) and isinstance(node.value, ast.Call):
-            candidate = node.value
+        candidate = _direct_top_level_call(node)
         if candidate is None:
             continue
         name = _call_name(candidate)
