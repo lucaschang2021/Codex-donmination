@@ -12,14 +12,21 @@ def evaluate_snapshot(contract: ArchitectureContract, snapshot: ModuleSnapshot) 
         return GateReport(status=GateStatus.PASS)
 
     for imported in snapshot.imports:
-        if any(imported == prefix or imported.startswith(prefix + ".") for prefix in rule.forbidden_import_prefixes):
+        forbidden = any(
+            imported == prefix or imported.startswith(prefix + ".")
+            for prefix in rule.forbidden_import_prefixes
+        )
+        if forbidden:
             findings.append(
                 Finding(
                     rule_id="AC-DEP-001",
                     severity=Severity.P1,
                     path=snapshot.path.as_posix(),
                     evidence=f"forbidden import: {imported}",
-                    remediation="depend on an allowed port/application boundary or move the responsibility",
+                    remediation=(
+                        "depend on an allowed port/application boundary "
+                        "or move the responsibility"
+                    ),
                 )
             )
 
@@ -53,7 +60,10 @@ def evaluate_snapshot(contract: ArchitectureContract, snapshot: ModuleSnapshot) 
                 rule_id="AC-CPLX-002",
                 severity=Severity.P1,
                 path=snapshot.path.as_posix(),
-                evidence=f"file has {snapshot.line_count} lines; hard limit is {contract.constraints.max_file_lines_hard}",
+                evidence=(
+                    f"file has {snapshot.line_count} lines; hard limit is "
+                    f"{contract.constraints.max_file_lines_hard}"
+                ),
                 remediation="split responsibilities before adding more behavior",
             )
         )
@@ -63,7 +73,10 @@ def evaluate_snapshot(contract: ArchitectureContract, snapshot: ModuleSnapshot) 
                 rule_id="AC-CPLX-001",
                 severity=Severity.P2,
                 path=snapshot.path.as_posix(),
-                evidence=f"file has {snapshot.line_count} lines; soft limit is {contract.constraints.max_file_lines_soft}",
+                evidence=(
+                    f"file has {snapshot.line_count} lines; soft limit is "
+                    f"{contract.constraints.max_file_lines_soft}"
+                ),
                 remediation="review responsibility growth and consider extraction",
             )
         )
@@ -77,8 +90,15 @@ def evaluate_snapshot(contract: ArchitectureContract, snapshot: ModuleSnapshot) 
     return GateReport(status=status, findings=tuple(findings))
 
 
-def evaluate_repository(contract: ArchitectureContract, snapshots: tuple[ModuleSnapshot, ...]) -> GateReport:
-    findings = tuple(f for snapshot in snapshots for f in evaluate_snapshot(contract, snapshot).findings)
+def evaluate_repository(
+    contract: ArchitectureContract,
+    snapshots: tuple[ModuleSnapshot, ...],
+) -> GateReport:
+    findings = tuple(
+        finding
+        for snapshot in snapshots
+        for finding in evaluate_snapshot(contract, snapshot).findings
+    )
     if any(f.severity is Severity.P0 for f in findings):
         status = GateStatus.BLOCK
     elif any(f.severity is Severity.P1 for f in findings):
