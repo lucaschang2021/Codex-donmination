@@ -1,7 +1,13 @@
 from pathlib import Path, PurePosixPath
 
 from mobius.application.gate_service import ArchitectureGateService
-from mobius.domain.models import ArchitectureContract, Constraints, GateStatus, ModuleRule, ModuleSnapshot
+from mobius.domain.models import (
+    ArchitectureContract,
+    Constraints,
+    GateStatus,
+    ModuleRule,
+    ModuleSnapshot,
+)
 
 
 class FakeScanner:
