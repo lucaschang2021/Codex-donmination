@@ -1,7 +1,13 @@
 from pathlib import PurePosixPath
 
 from mobius.domain.evaluator import evaluate_snapshot
-from mobius.domain.models import ArchitectureContract, Constraints, GateStatus, ModuleRule, ModuleSnapshot
+from mobius.domain.models import (
+    ArchitectureContract,
+    Constraints,
+    GateStatus,
+    ModuleRule,
+    ModuleSnapshot,
+)
 
 
 def _contract() -> ArchitectureContract:
