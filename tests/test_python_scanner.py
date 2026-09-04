@@ -16,7 +16,7 @@ def test_scanner_detects_mutable_global_without_importing_target(tmp_path: Path)
     snapshot = scan_python_file(tmp_path, target)
 
     assert snapshot.mutable_globals == ("CACHE",)
-    assert "open" in snapshot.import_time_calls
+    assert "open.write" in snapshot.import_time_calls
     assert "os" in snapshot.imports
     assert not marker.exists()
 
