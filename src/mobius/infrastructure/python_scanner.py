@@ -1,0 +1,98 @@
+"""Static Python repository scanning. No imports or execution of target code."""
+
+from __future__ import annotations
+
+import ast
+from pathlib import Path, PurePosixPath
+
+from mobius.domain.models import ModuleSnapshot
+
+_MUTABLE_LITERALS = (ast.List, ast.Dict, ast.Set)
+_SAFE_TOP_LEVEL_CALLS = frozenset(
+    {"dataclass", "field", "tuple", "frozenset", "Path", "PurePosixPath"}
+)
+
+
+def _expression_name(node: ast.expr) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        base = _expression_name(node.value)
+        return f"{base}.{node.attr}" if base else node.attr
+    if isinstance(node, ast.Call):
+        return _expression_name(node.func)
+    return None
+
+
+def _call_name(call: ast.Call) -> str:
+    return _expression_name(call.func) or "<dynamic-call>"
+
+
+def _imports(tree: ast.Module) -> tuple[str, ...]:
+    values: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            values.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            values.add(node.module)
+    return tuple(sorted(values))
+
+
+def _mutable_globals(tree: ast.Module) -> tuple[str, ...]:
+    names: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.value, _MUTABLE_LITERALS):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    names.add(target.id)
+        elif (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and isinstance(node.value, _MUTABLE_LITERALS)
+        ):
+            names.add(node.target.id)
+    return tuple(sorted(names))
+
+
+def _direct_top_level_call(node: ast.stmt) -> ast.Call | None:
+    if not isinstance(node, (ast.Expr, ast.Assign, ast.AnnAssign)):
+        return None
+    value = node.value
+    return value if isinstance(value, ast.Call) else None
+
+
+def _top_level_calls(tree: ast.Module) -> tuple[str, ...]:
+    calls: set[str] = set()
+    for node in tree.body:
+        candidate = _direct_top_level_call(node)
+        if candidate is None:
+            continue
+        name = _call_name(candidate)
+        if name.rsplit(".", 1)[-1] not in _SAFE_TOP_LEVEL_CALLS:
+            calls.add(name)
+    return tuple(sorted(calls))
+
+
+def scan_python_file(root: Path, path: Path) -> ModuleSnapshot:
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(path))
+    relative = PurePosixPath(path.relative_to(root).as_posix())
+    return ModuleSnapshot(
+        path=relative,
+        imports=_imports(tree),
+        mutable_globals=_mutable_globals(tree),
+        import_time_calls=_top_level_calls(tree),
+        line_count=len(source.splitlines()),
+    )
+
+
+class PythonRepositoryScanner:
+    """Filesystem adapter implementing the RepositoryScanner port."""
+
+    def scan(self, root: Path) -> tuple[ModuleSnapshot, ...]:
+        files = sorted(
+            path
+            for path in root.rglob("*.py")
+            if ".git" not in path.parts and ".venv" not in path.parts
+        )
+        return tuple(scan_python_file(root, path) for path in files)
