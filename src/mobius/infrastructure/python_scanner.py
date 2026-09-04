@@ -8,7 +8,9 @@ from pathlib import Path, PurePosixPath
 from mobius.domain.models import ModuleSnapshot
 
 _MUTABLE_LITERALS = (ast.List, ast.Dict, ast.Set)
-_SAFE_TOP_LEVEL_CALLS = {"dataclass", "field", "tuple", "frozenset", "Path", "PurePosixPath"}
+_SAFE_TOP_LEVEL_CALLS = frozenset(
+    {"dataclass", "field", "tuple", "frozenset", "Path", "PurePosixPath"}
+)
 
 
 def _call_name(call: ast.Call) -> str:
@@ -44,7 +46,11 @@ def _mutable_globals(tree: ast.Module) -> tuple[str, ...]:
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     names.add(target.id)
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and isinstance(node.value, _MUTABLE_LITERALS):
+        elif (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and isinstance(node.value, _MUTABLE_LITERALS)
+        ):
             names.add(node.target.id)
     return tuple(sorted(names))
 
@@ -82,5 +88,9 @@ class PythonRepositoryScanner:
     """Filesystem adapter implementing the RepositoryScanner port."""
 
     def scan(self, root: Path) -> tuple[ModuleSnapshot, ...]:
-        files = sorted(path for path in root.rglob("*.py") if ".git" not in path.parts and ".venv" not in path.parts)
+        files = sorted(
+            path
+            for path in root.rglob("*.py")
+            if ".git" not in path.parts and ".venv" not in path.parts
+        )
         return tuple(scan_python_file(root, path) for path in files)
