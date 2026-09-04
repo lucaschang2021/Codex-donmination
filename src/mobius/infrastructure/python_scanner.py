@@ -13,20 +13,19 @@ _SAFE_TOP_LEVEL_CALLS = frozenset(
 )
 
 
+def _expression_name(node: ast.expr) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        base = _expression_name(node.value)
+        return f"{base}.{node.attr}" if base else node.attr
+    if isinstance(node, ast.Call):
+        return _expression_name(node.func)
+    return None
+
+
 def _call_name(call: ast.Call) -> str:
-    target = call.func
-    if isinstance(target, ast.Name):
-        return target.id
-    if isinstance(target, ast.Attribute):
-        parts: list[str] = [target.attr]
-        value = target.value
-        while isinstance(value, ast.Attribute):
-            parts.append(value.attr)
-            value = value.value
-        if isinstance(value, ast.Name):
-            parts.append(value.id)
-        return ".".join(reversed(parts))
-    return "<dynamic-call>"
+    return _expression_name(call.func) or "<dynamic-call>"
 
 
 def _imports(tree: ast.Module) -> tuple[str, ...]:
