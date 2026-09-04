@@ -5,6 +5,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+from mobius.domain.contract_validation import validate_contract
 from mobius.domain.models import ArchitectureContract, Constraints, ModuleRule
 
 
@@ -40,10 +41,11 @@ class TomlContractLoader:
                 "architecture_gate_required", True
             ),
         )
-        return ArchitectureContract(
+        contract = ArchitectureContract(
             schema_version=int(data["schema_version"]),
             project=str(data["project"]),
             architecture_version=int(data["architecture_version"]),
             modules=modules,
             constraints=constraints,
         )
+        return validate_contract(contract)
