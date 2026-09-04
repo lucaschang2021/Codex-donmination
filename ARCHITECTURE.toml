@@ -38,7 +38,7 @@ side_effects = "explicit-runtime-only"
 name = "adapters"
 paths = ["src/mobius/adapters"]
 responsibility = "CLI/API/MCP transport adapters"
-may_depend_on = ["application", "domain"]
+may_depend_on = ["application", "domain", "bootstrap"]
 forbidden_import_prefixes = ["mobius.infrastructure"]
 side_effects = "entrypoint-only"
 
