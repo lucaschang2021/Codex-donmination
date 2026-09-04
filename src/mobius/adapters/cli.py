@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 
 from mobius.bootstrap import build_container
-from mobius.infrastructure.contract_loader import load_contract
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -23,8 +22,10 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command != "gate":
         return 2
-    contract = load_contract(args.contract)
-    report = build_container().architecture_gate.evaluate(root=args.root, contract=contract)
+
+    container = build_container()
+    contract = container.contract_loader.load(args.contract)
+    report = container.architecture_gate.evaluate(root=args.root, contract=contract)
     payload = {
         "status": report.status.value,
         "findings": [
